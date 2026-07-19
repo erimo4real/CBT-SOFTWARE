@@ -16,6 +16,7 @@ import {
   GraduationCap,
   Sparkles,
   Trophy,
+  User,
 } from 'lucide-react';
 
 const studentNav = [
@@ -141,7 +142,7 @@ export default function Sidebar({ isOpen, onClose }) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-3 border-t border-sidebar-border space-y-1">
           <NavLink
             to={isStudent ? '/student/dashboard' : '/profile'}
             onClick={onClose}
@@ -154,9 +155,26 @@ export default function Sidebar({ isOpen, onClose }) {
               )
             }
           >
-            <Settings className="h-[18px] w-[18px] shrink-0" />
-            {isStudent ? 'Back to Portal' : 'Profile & Settings'}
+            <User className="h-[18px] w-[18px] shrink-0" />
+            {isStudent ? 'Back to Portal' : 'Profile'}
           </NavLink>
+          {!isStudent && (
+            <NavLink
+              to="/settings"
+              onClick={onClose}
+              className={({ isActive }) =>
+                cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                  isActive
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border'
+                    : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+                )
+              }
+            >
+              <Settings className="h-[18px] w-[18px] shrink-0" />
+              Settings
+            </NavLink>
+          )}
         </div>
       </aside>
     </>

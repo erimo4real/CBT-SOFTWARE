@@ -21,6 +21,7 @@ import ExamTerminal from './pages/student/ExamTerminal';
 
 // Lazy-loaded page chunks
 const Profile = lazy(() => import('./pages/Profile'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 // Staff pages
 const ExamDashboard = lazy(() => import('./pages/ExamDashboard'));
@@ -109,6 +110,7 @@ function App() {
               <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                 <Route path="/dashboard" element={<ExamDashboard />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
 
                 {/* Courses */}
                 <Route path="/courses" element={<CourseCatalog />} />
@@ -161,6 +163,8 @@ function App() {
                 <Route path="/student/results/:id" element={<ExamResults />} />
                 <Route path="/student/results/:id/review" element={<ExamReview />} />
                 <Route path="/student/certificates" element={<Certificates />} />
+                <Route path="/student/profile" element={<Profile />} />
+                <Route path="/student/settings" element={<Settings />} />
               </Route>
 
               {/* ── Root redirect ── */}

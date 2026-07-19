@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Bell, Menu, LogOut, User, Sun, Moon } from 'lucide-react';
+import { Bell, Menu, LogOut, User, Sun, Moon, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { certificatesAPI } from '@/api/certificates';
@@ -57,6 +57,10 @@ export default function TopBar({ onMenuToggle }) {
     dispatch(logout());
     navigate('/login');
   };
+
+  const isStudent = user?.role === 'student';
+  const profilePath = isStudent ? '/student/profile' : '/profile';
+  const settingsPath = isStudent ? '/student/settings' : '/settings';
 
   return (
     <header className="sticky top-0 z-30 flex items-center h-16 px-4 bg-background/70 backdrop-blur-xl border-b border-border/50 lg:px-6">
@@ -108,9 +112,13 @@ export default function TopBar({ onMenuToggle }) {
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate('/profile')}>
+            <DropdownMenuItem onClick={() => navigate(profilePath)}>
               <User className="mr-2 h-4 w-4" />
               Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate(settingsPath)}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-red-600">
