@@ -20,7 +20,7 @@ class CategoryListView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsAdmin()]
+            return [IsInstructorOrAdmin()]
         return [AllowAny()]
 
 
@@ -30,7 +30,7 @@ class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method in ('PUT', 'PATCH', 'DELETE'):
-            return [IsAdmin()]
+            return [IsInstructorOrAdmin()]
         return [AllowAny()]
 
 
@@ -135,7 +135,7 @@ class LessonListView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsInstructor()]
+            return [IsInstructorOrAdmin()]
         return [AllowAny()]
 
     def perform_create(self, serializer):
@@ -150,11 +150,11 @@ class LessonDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method in ('PUT', 'PATCH', 'DELETE'):
-            return [IsInstructor()]
+            return [IsInstructorOrAdmin()]
         return [AllowAny()]
 
     def perform_update(self, serializer):
-        if serializer.instance.course.created_by != self.request.user:
+        if not self.request.user.is_admin_role and serializer.instance.course.created_by != self.request.user:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('You can only edit your own lessons')
         serializer.save()

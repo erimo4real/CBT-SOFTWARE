@@ -47,6 +47,7 @@ const staffAiNav = [
 const instructorNav = [
   { to: '/staff/students', label: 'Students', icon: Users },
   { to: '/staff/exam-pins', label: 'Exam PINs', icon: Key },
+  { to: '/admin/categories', label: 'Subjects', icon: FolderOpen },
   { to: '/instructor/courses', label: 'Topics', icon: FileText },
   { to: '/instructor/questions', label: 'Question Bank', icon: HelpCircle },
   { to: '/instructor/exams', label: 'Exam Builder', icon: ClipboardList },
