@@ -26,8 +26,12 @@ export const examsAPI = {
   startExam: (examId) => api.post(`/exams/exams/${examId}/start/`),
   saveAnswer: (attemptId, data) => api.post(`/exams/attempts/${attemptId}/save/`, data),
   flagQuestion: (attemptId, data) => api.post(`/exams/attempts/${attemptId}/flag/`, data),
-  submitExam: (attemptId) => api.post(`/exams/attempts/${attemptId}/submit/`),
+  submitExam: (attemptId, data) => api.post(`/exams/attempts/${attemptId}/submit/`, data),
   autoSubmit: (attemptId) => api.post(`/exams/attempts/${attemptId}/auto-submit/`),
+
+  // List aliases (used by student pages)
+  list: (params) => api.get('/exams/exams/', { params }),
+  myAttempts: (params) => api.get('/exams/attempts/', { params }),
 
   // Attempts
   getAttempts: (params) => api.get('/exams/attempts/', { params }),

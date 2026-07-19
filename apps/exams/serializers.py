@@ -42,6 +42,8 @@ class ExamListSerializer(serializers.ModelSerializer):
     course_title = serializers.CharField(source='course.title', read_only=True, default=None)
     question_count = serializers.SerializerMethodField()
     attempt_count = serializers.SerializerMethodField()
+    duration_display = serializers.SerializerMethodField()
+    exam_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Exam
@@ -50,6 +52,7 @@ class ExamListSerializer(serializers.ModelSerializer):
             'created_by', 'created_by_name', 'duration', 'total_marks',
             'passing_score', 'start_date', 'end_date', 'allowed_attempts',
             'is_published', 'question_count', 'attempt_count',
+            'duration_display', 'exam_status',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
@@ -60,12 +63,30 @@ class ExamListSerializer(serializers.ModelSerializer):
     def get_attempt_count(self, obj):
         return obj.attempts.count()
 
+    def get_duration_display(self, obj):
+        total = int(obj.duration.total_seconds()) if obj.duration else 0
+        h, m = divmod(total // 60, 60)
+        if h and m:
+            return f'{h}h {m}m'
+        return f'{h or m}{"h" if h else "m"}'
+
+    def get_exam_status(self, obj):
+        from django.utils import timezone
+        now = timezone.now()
+        if obj.start_date and now < obj.start_date:
+            return 'upcoming'
+        if obj.end_date and now > obj.end_date:
+            return 'ended'
+        return 'ongoing'
+
 
 class ExamDetailSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
     course_title = serializers.CharField(source='course.title', read_only=True, default=None)
     questions = ExamQuestionSerializer(source='exam_questions', many=True, read_only=True)
     question_count = serializers.SerializerMethodField()
+    duration_display = serializers.SerializerMethodField()
+    exam_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Exam
@@ -74,12 +95,29 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             'created_by', 'created_by_name', 'duration', 'total_marks',
             'passing_score', 'start_date', 'end_date', 'allowed_attempts',
             'config', 'anti_cheating', 'is_published', 'questions',
-            'question_count', 'created_at', 'updated_at',
+            'question_count', 'duration_display', 'exam_status',
+            'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
     def get_question_count(self, obj):
         return obj.exam_questions.count()
+
+    def get_duration_display(self, obj):
+        total = int(obj.duration.total_seconds()) if obj.duration else 0
+        h, m = divmod(total // 60, 60)
+        if h and m:
+            return f'{h}h {m}m'
+        return f'{h or m}{"h" if h else "m"}'
+
+    def get_exam_status(self, obj):
+        from django.utils import timezone
+        now = timezone.now()
+        if obj.start_date and now < obj.start_date:
+            return 'upcoming'
+        if obj.end_date and now > obj.end_date:
+            return 'ended'
+        return 'ongoing'
 
 
 class AnswerSerializer(serializers.ModelSerializer):

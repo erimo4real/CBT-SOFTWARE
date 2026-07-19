@@ -77,7 +77,7 @@ export default function LessonView() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-96 w-full rounded-lg" />
+        <Skeleton className="h-48 sm:h-96 w-full rounded-lg" />
         <Skeleton className="h-6 w-3/4" />
       </div>
     );
@@ -134,7 +134,7 @@ export default function LessonView() {
           ) : lesson.content_type === 'pdf' && lesson.file ? (
             <iframe
               src={lesson.file}
-              className="w-full h-[600px] rounded-lg border"
+              className="w-full h-[50vh] sm:h-[600px] rounded-lg border"
               title={lesson.title}
             />
           ) : null}

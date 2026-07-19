@@ -128,7 +128,7 @@ export default function Profile() {
       {/* Avatar & basics */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="relative">
               <Avatar className="h-20 w-20">
                 {user?.avatar ? (

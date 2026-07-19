@@ -37,10 +37,7 @@ export default function ExamTerminal() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center terminal-auth-bg p-4">
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90" />
-
+    <div className="terminal-auth-bg min-h-screen flex items-center justify-center p-4">
       <div className="relative z-10 w-full max-w-md">
         <Card className="border-slate-600 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md card-shadow">
           <CardHeader className="text-center space-y-3">

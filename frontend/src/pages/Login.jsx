@@ -45,7 +45,7 @@ export default function Login() {
 
   return (
     <AuthSplitLayout subtitle={<>Welcome Back<br />to CBT</>}>
-      <Card className="shadow-xl border-0 card-shadow">
+      <Card className="shadow-xl border-0 card-shadow bg-white/90 dark:bg-background/90 backdrop-blur-md">
         <CardContent className="pt-8 pb-6 px-6">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold tracking-tight">Sign In</h1>

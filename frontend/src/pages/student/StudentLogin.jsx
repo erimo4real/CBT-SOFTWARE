@@ -86,10 +86,7 @@ export default function StudentLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center student-auth-bg p-4">
-      {/* Decorative overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/60 to-primary/40" />
-
+    <div className="student-auth-bg min-h-screen flex items-center justify-center p-4">
       <div className="relative z-10 w-full max-w-md">
         <Card className="card-shadow border-0 bg-white/90 dark:bg-background/90 backdrop-blur-md">
           <CardHeader className="text-center space-y-3">

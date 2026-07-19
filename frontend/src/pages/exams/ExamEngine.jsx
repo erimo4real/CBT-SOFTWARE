@@ -11,9 +11,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import {
   Clock, Flag, FlagOff, ChevronLeft, ChevronRight, Send,
-  AlertTriangle, Loader2, CheckCircle2,
+  AlertTriangle, Loader2, CheckCircle2, Maximize, ShieldAlert,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import useAntiCheat from '@/hooks/useAntiCheat';
 
 export default function ExamEngine() {
   const { id } = useParams();
@@ -30,52 +31,72 @@ export default function ExamEngine() {
   const [submitting, setSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showFullscreenPrompt, setShowFullscreenPrompt] = useState(false);
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [instructionsAccepted, setInstructionsAccepted] = useState(false);
 
   const autoSaveTimer = useRef(null);
 
-  // Start or resume exam
+  const antiCheat = useAntiCheat({
+    enabled: attempt?.status === 'in_progress',
+    onViolation: (v) => {
+      toast.warning(`Violation: ${v.type.replace('_', ' ')}`, { duration: 3000 });
+    },
+  });
+
+  // Load exam details only (don't start yet)
   useEffect(() => {
     const init = async () => {
       try {
         const examRes = await examsAPI.getExam(id);
         setExam(examRes.data);
-
-        setStarting(true);
-        const startRes = await examsAPI.startExam(id);
-        const att = startRes.data.attempt;
-        setAttempt(att);
-        setTimeLeft(att.time_remaining || 0);
-
-        // Restore answers from attempt
-        const ansMap = {};
-        const flagMap = {};
-        if (att.answers) {
-          att.answers.forEach((a) => {
-            ansMap[a.question] = {
-              selected_option: a.selected_option,
-              answer_text: a.answer_text,
-              time_spent: a.time_spent || 0,
-            };
-          });
-        }
-        // Restore flags
-        if (att._flags) {
-          Object.entries(att._flags).forEach(([qId, flagged]) => {
-            if (flagged) flagMap[qId] = true;
-          });
-        }
-        setAnswers(ansMap);
-        setFlags(flagMap);
       } catch (err) {
-        toast.error(err.response?.data?.error || 'Failed to start exam');
+        toast.error('Failed to load exam');
         navigate('/exams');
       } finally {
         setLoading(false);
-        setStarting(false);
       }
     };
     init();
   }, [id, navigate]);
+
+  // Start exam after instructions accepted
+  const handleStartExam = async () => {
+    setStarting(true);
+    try {
+      const startRes = await examsAPI.startExam(id);
+      const att = startRes.data.attempt;
+      setAttempt(att);
+      setTimeLeft(att.time_remaining || 0);
+
+      // Restore answers from attempt
+      const ansMap = {};
+      const flagMap = {};
+      if (att.answers) {
+        att.answers.forEach((a) => {
+          ansMap[a.question] = {
+            selected_option: a.selected_option,
+            answer_text: a.answer_text,
+            time_spent: a.time_spent || 0,
+          };
+        });
+      }
+      // Restore flags
+      if (att._flags) {
+        Object.entries(att._flags).forEach(([qId, flagged]) => {
+          if (flagged) flagMap[qId] = true;
+        });
+      }
+      setAnswers(ansMap);
+      setFlags(flagMap);
+      setShowInstructions(false);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to start exam');
+      navigate('/exams');
+    } finally {
+      setStarting(false);
+    }
+  };
 
   // Timer countdown
   useEffect(() => {
@@ -136,10 +157,18 @@ export default function ExamEngine() {
     if (submitting) return;
     setSubmitting(true);
     try {
+      const payload = {
+        tab_switches: antiCheat.tabSwitches,
+        violations: antiCheat.violations,
+      };
       if (timedOut) {
         await examsAPI.autoSubmit(attempt.id);
       } else {
-        await examsAPI.submitExam(attempt.id);
+        await examsAPI.submitExam(attempt.id, payload);
+      }
+      // Exit fullscreen on submit
+      if (document.fullscreenElement) {
+        try { document.exitFullscreen(); } catch {}
       }
       toast.success(timedOut ? 'Time expired — exam submitted' : 'Exam submitted!');
       navigate(`/exams/${id}/results`);
@@ -163,8 +192,113 @@ export default function ExamEngine() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-          <p className="text-muted-foreground">Loading exam...</p>
+          <p className="text-muted-foreground">{starting ? 'Starting exam...' : 'Loading exam...'}</p>
         </div>
+      </div>
+    );
+  }
+
+  // Instructions screen before exam starts
+  if (showInstructions && exam && !attempt) {
+    const totalQ = exam.questions?.length || exam.question_count || 0;
+    const totalMin = exam.duration ? Math.round(exam.duration / 60) : '—';
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <Card className="card-shadow border-0">
+          <CardContent className="pt-6 space-y-5">
+            <div className="text-center space-y-2">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <ShieldAlert className="h-7 w-7 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold">{exam.title}</h1>
+              {exam.course_title && <p className="text-muted-foreground">{exam.course_title}</p>}
+            </div>
+
+            <Separator />
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div className="space-y-1">
+                <p className="text-2xl font-bold">{totalQ}</p>
+                <p className="text-xs text-muted-foreground">Questions</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold">{totalMin}{typeof totalMin === 'number' ? 'm' : ''}</p>
+                <p className="text-xs text-muted-foreground">Duration</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold">{exam.passing_score}%</p>
+                <p className="text-xs text-muted-foreground">Pass Score</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-2xl font-bold">{exam.total_marks}</p>
+                <p className="text-xs text-muted-foreground">Total Marks</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <h2 className="font-semibold flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" /> Exam Rules
+              </h2>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                  This exam must be taken in <strong>fullscreen mode</strong>.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                  Switching tabs or windows is <strong>tracked and may be flagged</strong>.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                  Copying, pasting, and right-click are <strong>disabled</strong>.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                  Your answers are <strong>auto-saved</strong> every few seconds.
+                </li>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                  The timer starts immediately — once started, the exam <strong>cannot be paused</strong>.
+                </li>
+                {exam.allowed_attempts > 1 && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                    You have <strong>{exam.allowed_attempts} attempt{exam.allowed_attempts > 1 ? 's' : ''}</strong> for this exam.
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="accept-rules"
+                checked={instructionsAccepted}
+                onChange={(e) => setInstructionsAccepted(e.target.checked)}
+                className="h-4 w-4 rounded border-muted-foreground/30 accent-primary"
+              />
+              <label htmlFor="accept-rules" className="text-sm font-medium cursor-pointer select-none">
+                I have read and understood the rules
+              </label>
+            </div>
+
+            <div className="flex gap-3 justify-end">
+              <Button variant="outline" onClick={() => navigate('/student/exams')}>
+                Back
+              </Button>
+              <Button
+                disabled={!instructionsAccepted}
+                onClick={handleStartExam}
+              >
+                <Play className="h-4 w-4 mr-2" /> Start Exam
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -379,6 +513,11 @@ export default function ExamEngine() {
                   </span>
                 )}
               </p>
+              {antiCheat.totalViolations > 0 && (
+                <p className="text-xs text-destructive">
+                  {antiCheat.totalViolations} violation{antiCheat.totalViolations !== 1 ? 's' : ''} recorded ({antiCheat.tabSwitches} tab switch{antiCheat.tabSwitches !== 1 ? 'es' : ''})
+                </p>
+              )}
               <div className="flex gap-3 justify-end">
                 <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancel</Button>
                 <Button onClick={() => { setShowConfirm(false); handleSubmit(); }} disabled={submitting}>
@@ -388,6 +527,46 @@ export default function ExamEngine() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Fullscreen prompt */}
+      {attempt?.status === 'in_progress' && !antiCheat.isFullscreen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <Card className="w-full max-w-sm mx-4">
+            <CardContent className="pt-6 text-center space-y-4">
+              <div className="mx-auto h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Maximize className="h-7 w-7 text-primary" />
+              </div>
+              <h2 className="text-lg font-bold">Enter Fullscreen</h2>
+              <p className="text-sm text-muted-foreground">
+                This exam requires fullscreen mode. Please click below to continue.
+              </p>
+              <Button onClick={antiCheat.requestFullscreen} className="w-full btn-press">
+                <Maximize className="h-4 w-4 mr-2" /> Enter Fullscreen
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Violation warning toast */}
+      {antiCheat.showWarning && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-destructive text-destructive-foreground shadow-lg">
+            <ShieldAlert className="h-5 w-5 shrink-0" />
+            <span className="text-sm font-medium">{antiCheat.warningMessage}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Violation counter in header */}
+      {antiCheat.totalViolations > 0 && (
+        <div className="fixed bottom-4 right-4 z-40">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium">
+            <ShieldAlert className="h-3.5 w-3.5" />
+            {antiCheat.totalViolations} violation{antiCheat.totalViolations !== 1 ? 's' : ''}
+          </div>
         </div>
       )}
     </div>

@@ -272,7 +272,7 @@ export default function QuestionBank() {
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Edit Question' : 'New Question'}</DialogTitle></DialogHeader>
           <form onSubmit={saveQuestion} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Subject *</Label>
                 <Input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} required />
@@ -282,7 +282,7 @@ export default function QuestionBank() {
                 <Input value={form.topic} onChange={e => setForm({ ...form, topic: e.target.value })} required />
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Type *</Label>
                 <Select value={form.question_type} onValueChange={v => setForm({ ...form, question_type: v })}>

@@ -25,7 +25,7 @@ export default function ResetPassword() {
   if (!token || !uid) {
     return (
       <AuthSplitLayout subtitle={<>Invalid<br />Link</>}>
-        <Card className="shadow-xl border-0 card-shadow">
+        <Card className="shadow-xl border-0 card-shadow bg-white/90 dark:bg-background/90 backdrop-blur-md">
           <CardContent className="pt-8 pb-6 px-6 text-center space-y-4">
             <p className="text-destructive font-medium">Invalid reset link</p>
             <Link to="/forgot-password"><Button variant="outline">Request a new link</Button></Link>
@@ -58,7 +58,7 @@ export default function ResetPassword() {
   if (done) {
     return (
       <AuthSplitLayout subtitle={<>Password<br />Updated</>}>
-        <Card className="shadow-xl border-0 card-shadow">
+        <Card className="shadow-xl border-0 card-shadow bg-white/90 dark:bg-background/90 backdrop-blur-md">
           <CardContent className="pt-8 pb-6 px-6 text-center space-y-4">
             <div className="mx-auto h-14 w-14 rounded-2xl bg-emerald-100 flex items-center justify-center">
               <CheckCircle2 className="h-8 w-8 text-emerald-600" />
@@ -74,7 +74,7 @@ export default function ResetPassword() {
 
   return (
     <AuthSplitLayout subtitle={<>Set a New<br />Password</>}>
-      <Card className="shadow-xl border-0 card-shadow">
+      <Card className="shadow-xl border-0 card-shadow bg-white/90 dark:bg-background/90 backdrop-blur-md">
         <CardContent className="pt-8 pb-6 px-6">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold tracking-tight">New Password</h1>

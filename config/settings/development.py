@@ -57,6 +57,9 @@ DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TOOLBAR_CALLBACK': lambda request: False,
 }
 
+# Silence debug toolbar check during tests
+SILENCED_SYSTEM_CHECKS = ['debug_toolbar.E001']
+
 # Security (relaxed for dev)
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False

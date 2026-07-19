@@ -38,7 +38,7 @@ export default function ExamBuilder() {
   const [form, setForm] = useState({
     title: '', description: '', course: '', duration: 60,
     passing_score: 50, allowed_attempts: 1, start_date: '', end_date: '',
-    is_published: false,
+    is_published: false, shuffle_questions: false, shuffle_options: false,
   });
 
   useEffect(() => {
@@ -65,13 +65,14 @@ export default function ExamBuilder() {
     setForm({
       title: '', description: '', course: '', duration: 60,
       passing_score: 50, allowed_attempts: 1, start_date: '', end_date: '',
-      is_published: false,
+      is_published: false, shuffle_questions: false, shuffle_options: false,
     });
     setDialogOpen(true);
   }
 
   function openEdit(exam) {
     setEditing(exam);
+    const cfg = exam.config || {};
     setForm({
       title: exam.title,
       description: exam.description || '',
@@ -82,6 +83,8 @@ export default function ExamBuilder() {
       start_date: exam.start_date ? exam.start_date.slice(0, 16) : '',
       end_date: exam.end_date ? exam.end_date.slice(0, 16) : '',
       is_published: exam.is_published,
+      shuffle_questions: !!cfg.shuffle_questions,
+      shuffle_options: !!cfg.shuffle_options,
     });
     setDialogOpen(true);
   }
@@ -95,14 +98,20 @@ export default function ExamBuilder() {
     setSaving(true);
     try {
       const payload = {
-        ...form,
+        title: form.title,
+        description: form.description,
+        course: form.course || null,
         duration: Number(form.duration) * 60,
         passing_score: Number(form.passing_score),
         allowed_attempts: Number(form.allowed_attempts),
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
+        is_published: form.is_published,
+        config: {
+          shuffle_questions: form.shuffle_questions,
+          shuffle_options: form.shuffle_options,
+        },
       };
-      if (!payload.course) delete payload.course;
-      if (!payload.start_date) delete payload.start_date;
-      if (!payload.end_date) delete payload.end_date;
       if (editing) {
         await examsAPI.updateExam(editing.id, payload);
         toast.success('Exam updated');
@@ -217,7 +226,7 @@ export default function ExamBuilder() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground line-clamp-2">{exam.description || 'No description'}</p>
-                <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                <div className="grid grid-cols-3 gap-1 sm:gap-2 text-xs text-muted-foreground">
                   <div><span className="font-medium text-foreground">{exam.question_count}</span> questions</div>
                   <div><span className="font-medium text-foreground">{Math.round(exam.duration / 60)}m</span> duration</div>
                   <div><span className="font-medium text-foreground">{exam.passing_score}%</span> pass</div>
@@ -257,7 +266,7 @@ export default function ExamBuilder() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Duration (min)</Label>
                 <Input type="number" min="1" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })} />
@@ -271,7 +280,7 @@ export default function ExamBuilder() {
                 <Input type="number" min="1" value={form.allowed_attempts} onChange={e => setForm({ ...form, allowed_attempts: e.target.value })} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Start Date</Label>
                 <Input type="datetime-local" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} />
@@ -285,6 +294,16 @@ export default function ExamBuilder() {
               <Switch checked={form.is_published} onCheckedChange={v => setForm({ ...form, is_published: v })} />
               <Label>Published</Label>
             </div>
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-2">
+                <Switch checked={form.shuffle_questions} onCheckedChange={v => setForm({ ...form, shuffle_questions: v })} />
+                <Label className="text-sm">Shuffle question order</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={form.shuffle_options} onCheckedChange={v => setForm({ ...form, shuffle_options: v })} />
+                <Label className="text-sm">Shuffle answer options</Label>
+              </div>
+            </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={saving}>{saving ? 'Saving...' : editing ? 'Update' : 'Create'}</Button>
@@ -295,7 +314,7 @@ export default function ExamBuilder() {
 
       {/* Manage Questions Dialog */}
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Manage Questions — {selectedExam?.title}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>

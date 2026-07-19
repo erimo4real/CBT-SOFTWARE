@@ -164,7 +164,7 @@ function CreatePinDialog({ open, onClose, exams, onCreated }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Max Uses</Label>
               <Input type="number" min="1" value={form.max_uses} onChange={(e) => setForm({ ...form, max_uses: parseInt(e.target.value) || 1 })} />

@@ -3,13 +3,13 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectUser } from '@/store/slices/authSlice';
 import { examsAPI } from '@/api/exams';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import PageTransition from '@/components/PageTransition';
 import Scorecard from '@/components/Scorecard';
 import { ListSkeleton } from '@/components/Skeletons';
-import { Trophy, Clock, CheckCircle2, Eye, ArrowLeft, Printer } from 'lucide-react';
+import { Trophy, Clock, CheckCircle2, Eye, ArrowLeft, Printer, Download, Loader2 } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 
@@ -20,6 +20,7 @@ export default function ExamResults() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
   const [printResult, setPrintResult] = useState(null);
+  const [downloading, setDownloading] = useState(null);
   const scorecardRef = useRef(null);
 
   useEffect(() => {
@@ -34,6 +35,48 @@ export default function ExamResults() {
     setTimeout(() => {
       window.print();
     }, 100);
+  };
+
+  const handleDownloadPDF = async (result) => {
+    setDownloading(result.id);
+    setPrintResult(result);
+    try {
+      const html2pdf = (await import('html2pdf.js')).default;
+      // Wait for scorecard to render
+      await new Promise(r => setTimeout(r, 200));
+      const el = scorecardRef.current;
+      if (!el) {
+        toast.error('Failed to generate PDF');
+        return;
+      }
+      // Make the scorecard visible temporarily
+      el.style.display = 'block';
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      el.style.top = '0';
+
+      await html2pdf()
+        .set({
+          margin: 10,
+          filename: `scorecard-${result.exam_title || 'exam'}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        })
+        .from(el)
+        .save();
+
+      // Reset visibility
+      el.style.display = '';
+      el.style.position = '';
+      el.style.left = '';
+      el.style.top = '';
+      toast.success('PDF downloaded');
+    } catch {
+      toast.error('Failed to generate PDF');
+    } finally {
+      setDownloading(null);
+    }
   };
 
   if (loading) {
@@ -68,7 +111,7 @@ export default function ExamResults() {
           <div className="space-y-3 scorecard-no-print">
             {results.map((result, idx) => (
               <Card key={result.id} className="card-shadow border-0">
-                <CardContent className="pt-4 flex items-center justify-between gap-4">
+                <CardContent className="pt-4 flex flex-wrap items-center justify-between gap-4">
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">Attempt #{result.attempt_number || idx + 1}</span>
@@ -88,6 +131,20 @@ export default function ExamResults() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownloadPDF(result)}
+                      disabled={downloading === result.id}
+                      className="btn-press"
+                    >
+                      {downloading === result.id ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1" />
+                      )}
+                      PDF
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"

@@ -24,6 +24,9 @@ export default function StudentManager() {
   const [showImport, setShowImport] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
   const [createdPassword, setCreatedPassword] = useState(null);
+  const [selected, setSelected] = useState(new Set());
+  const [bulkAction, setBulkAction] = useState('');
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const fetchStudents = () => {
     setLoading(true);
@@ -34,6 +37,50 @@ export default function StudentManager() {
   };
 
   useEffect(() => { fetchStudents(); }, [search]);
+
+  const toggleSelect = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selected.size === students.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(students.map(s => s.id)));
+    }
+  };
+
+  const handleBulkAction = async () => {
+    if (!bulkAction || selected.size === 0) return;
+    const ids = Array.from(selected);
+    setBulkLoading(true);
+    try {
+      if (bulkAction === 'activate' || bulkAction === 'suspend') {
+        const status = bulkAction === 'activate' ? 'active' : 'suspended';
+        await Promise.all(ids.map(id => studentsAPI.patch(id, { account_status: status })));
+        toast.success(`${ids.length} student(s) ${bulkAction}d`);
+      } else if (bulkAction === 'delete') {
+        if (!confirm(`Delete ${ids.length} student(s)? This cannot be undone.`)) {
+          setBulkLoading(false);
+          return;
+        }
+        await Promise.all(ids.map(id => studentsAPI.delete(id)));
+        toast.success(`${ids.length} student(s) deleted`);
+      }
+      setSelected(new Set());
+      setBulkAction('');
+      fetchStudents();
+    } catch {
+      toast.error('Bulk action failed');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -57,6 +104,28 @@ export default function StudentManager() {
         <Input placeholder="Search by name, email, reg#..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="py-3 px-4 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium">{selected.size} selected</span>
+            <Select value={bulkAction} onValueChange={setBulkAction}>
+              <SelectTrigger className="w-44 h-9"><SelectValue placeholder="Bulk action..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="activate">Activate</SelectItem>
+                <SelectItem value="suspend">Suspend</SelectItem>
+                <SelectItem value="delete">Delete</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" disabled={!bulkAction || bulkLoading} onClick={handleBulkAction}>
+              {bulkLoading && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Apply
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
+          </CardContent>
+        </Card>
+      )}
+
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}
@@ -75,18 +144,34 @@ export default function StudentManager() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
+                    <th className="p-3 w-10">
+                      <input
+                        type="checkbox"
+                        checked={students.length > 0 && selected.size === students.length}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-muted-foreground/30 accent-primary"
+                      />
+                    </th>
                     <th className="text-left p-3 font-medium">Name</th>
                     <th className="text-left p-3 font-medium">Email</th>
                     <th className="text-left p-3 font-medium">Reg #</th>
                     <th className="text-left p-3 font-medium">Class</th>
                     <th className="text-left p-3 font-medium">Status</th>
-                    <th className="text-left p-3 font-medium">Phone</th>
+                    <th className="text-left p-3 font-medium hidden md:table-cell">Phone</th>
                     <th className="text-right p-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {students.map((s) => (
-                    <tr key={s.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                    <tr key={s.id} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${selected.has(s.id) ? 'bg-primary/5' : ''}`}>
+                      <td className="p-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(s.id)}
+                          onChange={() => toggleSelect(s.id)}
+                          className="h-4 w-4 rounded border-muted-foreground/30 accent-primary"
+                        />
+                      </td>
                       <td className="p-3 font-medium">{s.full_name || `${s.first_name} ${s.last_name}`}</td>
                       <td className="p-3 text-muted-foreground">{s.email}</td>
                       <td className="p-3 font-mono text-xs">{s.reg_number || '—'}</td>
@@ -98,7 +183,7 @@ export default function StudentManager() {
                           'bg-gray-100 text-gray-800'
                         }>{s.account_status}</Badge>
                       </td>
-                      <td className="p-3 text-muted-foreground">{s.phone || '—'}</td>
+                      <td className="p-3 text-muted-foreground hidden md:table-cell">{s.phone || '—'}</td>
                       <td className="p-3 text-right">
                         <Button size="sm" variant="ghost" onClick={() => setShowDetail(s)}>
                           <MoreHorizontal className="h-4 w-4" />
@@ -185,7 +270,7 @@ function CreateStudentDialog({ open, onClose, onCreated }) {
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Add New Student</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>First Name *</Label>
               <Input required value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
@@ -199,7 +284,7 @@ function CreateStudentDialog({ open, onClose, onCreated }) {
             <Label>Email *</Label>
             <Input type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Phone</Label>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
@@ -332,17 +417,17 @@ function StudentDetailDialog({ student, onClose, onUpdated }) {
           <DialogTitle>{student.full_name || `${student.first_name} ${student.last_name}`}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><span className="text-muted-foreground">Email:</span> <p className="font-medium">{student.email}</p></div>
             <div><span className="text-muted-foreground">Reg #:</span> <p className="font-mono">{student.reg_number || '—'}</p></div>
           </div>
           {editing ? (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>First Name</Label><Input value={form.first_name} onChange={(e) => setForm({ ...form, first_name: e.target.value })} /></div>
                 <div className="space-y-1"><Label>Last Name</Label><Input value={form.last_name} onChange={(e) => setForm({ ...form, last_name: e.target.value })} /></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1"><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
                 <div className="space-y-1"><Label>Class</Label><Input value={form.class_level} onChange={(e) => setForm({ ...form, class_level: e.target.value })} /></div>
               </div>
@@ -366,11 +451,11 @@ function StudentDetailDialog({ student, onClose, onUpdated }) {
             </>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">Phone:</span> <p>{student.phone || '—'}</p></div>
                 <div><span className="text-muted-foreground">Class:</span> <p>{student.class_level || '—'}</p></div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><span className="text-muted-foreground">Status:</span>
                   <Badge className={
                     student.account_status === 'active' ? 'bg-green-100 text-green-800 ml-2' :

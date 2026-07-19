@@ -5,6 +5,9 @@ from rest_framework.response import Response
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.conf import settings
+from django.template.loader import render_to_string
 from django.shortcuts import get_object_or_404
 import random
 import csv
@@ -272,10 +275,24 @@ def start_exam(request, exam_pk):
         eq.order = i
         eq.save()
 
+    # Shuffle options per-student (stores mapping in attempt.answers key '_option_map')
+    option_map = {}
+    if config.get('shuffle_options'):
+        for eq in exam_questions:
+            q = eq.question
+            if q.options and len(q.options) > 1:
+                indices = list(range(len(q.options)))
+                random.shuffle(indices)
+                # Store the shuffle mapping so submit can reverse it
+                option_map[str(q.id)] = indices
+                # We shuffle the options list for the response but don't persist to DB
+                q.options = [q.options[j] for j in indices]
+
     attempt = ExamAttempt.objects.create(
         user=request.user,
         exam=exam,
         attempt_number=attempt_count + 1,
+        answers={'_option_map': {k: [int(x) for x in v] for k, v in option_map.items()}} if option_map else {},
     )
 
     attempt_serializer = ExamAttemptDetailSerializer(attempt, context={'request': request})
@@ -335,21 +352,39 @@ def toggle_flag(request, attempt_pk):
     return Response({'flagged': flagged})
 
 
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def submit_exam(request, attempt_pk):
-    """Submit exam for grading."""
-    with transaction.atomic():
-        attempt = get_object_or_404(
-            ExamAttempt.objects.select_for_update(),
-            id=attempt_pk, user=request.user, status='in_progress'
+def _send_exam_result_email(attempt):
+    """Send exam result email to student (fire-and-forget, silent on failure)."""
+    try:
+        user = attempt.user
+        if not user.email:
+            return
+        passed = attempt.passed
+        status_text = 'PASSED' if passed else 'FAILED'
+        subject = f'Exam Result: {attempt.exam.title} — {status_text}'
+        message = (
+            f'Hello {user.first_name or user.email},\n\n'
+            f'Your exam result for "{attempt.exam.title}" is ready.\n\n'
+            f'Score: {attempt.score} marks\n'
+            f'Percentage: {attempt.percentage}%\n'
+            f'Result: {status_text}\n'
+            f'Passing score: {attempt.exam.passing_score}%\n\n'
+            f'{"Congratulations!" if passed else "Keep practicing — you will improve."}\n\n'
+            f'Regards,\nCBT Team'
         )
-        attempt.end_time = timezone.now()
-        attempt.status = 'completed'
-        attempt.save(update_fields=['end_time', 'status'])
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
+    except Exception:
+        pass
 
+
+def _grade_attempt(attempt):
+    """Grade all answers for an attempt. Returns (total_marks, earned_marks)."""
     total_marks = 0
     earned_marks = 0
+
+    option_map = {}
+    stored = attempt.answers or {}
+    if isinstance(stored, dict):
+        option_map = stored.get('_option_map', {})
 
     exam_questions = ExamQuestion.objects.filter(exam=attempt.exam).select_related('question')
 
@@ -357,6 +392,14 @@ def submit_exam(request, attempt_pk):
         answer = Answer.objects.filter(attempt=attempt, question=eq.question).first()
         if not answer:
             answer = Answer.objects.create(attempt=attempt, question=eq.question)
+
+        # Reverse-map shuffled option index back to original
+        qid = str(eq.question.id)
+        if qid in option_map and answer.selected_option is not None:
+            mapping = option_map[qid]
+            if isinstance(answer.selected_option, int) and answer.selected_option < len(mapping):
+                answer.selected_option = mapping[answer.selected_option]
+
         is_correct = _check_answer(answer, eq.question)
         answer.is_correct = is_correct
         if is_correct:
@@ -371,6 +414,49 @@ def submit_exam(request, attempt_pk):
     attempt.percentage = round((earned_marks / total_marks * 100), 2) if total_marks > 0 else 0
     attempt.passed = attempt.percentage >= attempt.exam.passing_score
     attempt.save()
+
+    return total_marks, earned_marks
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_exam(request, attempt_pk):
+    """Submit exam for grading."""
+    with transaction.atomic():
+        attempt = get_object_or_404(
+            ExamAttempt.objects.select_for_update(),
+            id=attempt_pk, user=request.user, status='in_progress'
+        )
+        attempt.end_time = timezone.now()
+        attempt.status = 'completed'
+        tab_switches = request.data.get('tab_switches', 0)
+        violations = request.data.get('violations', [])
+        attempt.tab_switches = int(tab_switches)
+        attempt.violations = violations
+        attempt.save(update_fields=['end_time', 'status', 'tab_switches', 'violations'])
+
+    _grade_attempt(attempt)
+
+    # Update streak and XP
+    from apps.analytics.models import UserAnalytics
+    analytics, _ = UserAnalytics.objects.get_or_create(user=attempt.user)
+    analytics.total_exams_taken += 1
+    analytics.average_score = attempt.percentage
+    analytics.xp_points += 50 if attempt.passed else 10
+    today = timezone.now().date()
+    if analytics.last_active_date:
+        diff = (today - analytics.last_active_date).days
+        if diff == 1:
+            analytics.streak_days += 1
+        elif diff > 1:
+            analytics.streak_days = 1
+    else:
+        analytics.streak_days = 1
+    analytics.last_active_date = today
+    analytics.save()
+
+    # Send results email
+    _send_exam_result_email(attempt)
 
     return Response(ExamAttemptDetailSerializer(attempt, context={'request': request}).data)
 
@@ -392,29 +478,7 @@ def auto_submit_exam(request, attempt_pk):
         attempt.status = 'timed_out'
         attempt.save(update_fields=['end_time', 'status'])
 
-    total_marks = 0
-    earned_marks = 0
-
-    exam_questions = ExamQuestion.objects.filter(exam=attempt.exam).select_related('question')
-
-    for eq in exam_questions:
-        answer = Answer.objects.filter(attempt=attempt, question=eq.question).first()
-        if not answer:
-            answer = Answer.objects.create(attempt=attempt, question=eq.question)
-        is_correct = _check_answer(answer, eq.question)
-        answer.is_correct = is_correct
-        if is_correct:
-            answer.marks_awarded = eq.marks
-            earned_marks += eq.marks
-        else:
-            answer.marks_awarded = 0
-        answer.save()
-        total_marks += eq.marks
-
-    attempt.score = earned_marks
-    attempt.percentage = round((earned_marks / total_marks * 100), 2) if total_marks > 0 else 0
-    attempt.passed = attempt.percentage >= attempt.exam.passing_score
-    attempt.save()
+    _grade_attempt(attempt)
 
     return Response({
         'message': 'Exam auto-submitted (time expired)',

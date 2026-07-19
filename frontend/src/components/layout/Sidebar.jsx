@@ -14,18 +14,33 @@ import {
   Award,
   Key,
   GraduationCap,
+  Sparkles,
+  Trophy,
 } from 'lucide-react';
 
 const studentNav = [
   { to: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/student/exams', label: 'Exams', icon: ClipboardList },
+  { to: '/student/leaderboard', label: 'Leaderboard', icon: Trophy },
   { to: '/student/certificates', label: 'Certificates', icon: Award },
+];
+
+const studentAiNav = [
+  { to: '/ai/tutor', label: 'AI Tutor', icon: Sparkles },
+  { to: '/ai/quiz', label: 'AI Quiz', icon: HelpCircle },
+  { to: '/ai/study-plan', label: 'Study Planner', icon: FileText },
+  { to: '/ai/weakness', label: 'Weakness Analysis', icon: BarChart3 },
 ];
 
 const staffNav = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/exams', label: 'Exams', icon: ClipboardList },
   { to: '/certificates', label: 'Certificates', icon: Award },
+];
+
+const staffAiNav = [
+  { to: '/ai/tutor', label: 'AI Tutor', icon: Sparkles },
+  { to: '/ai/questions', label: 'Question Generator', icon: HelpCircle },
 ];
 
 const instructorNav = [
@@ -55,8 +70,10 @@ export default function Sidebar({ isOpen, onClose }) {
 
   if (isStudent) {
     sections.push({ label: null, items: studentNav });
+    sections.push({ label: 'AI Tools', items: studentAiNav });
   } else {
     sections.push({ label: null, items: staffNav });
+    sections.push({ label: 'AI Tools', items: staffAiNav });
     if (isInstructor || isAdmin) {
       sections.push({ label: 'Management', items: instructorNav });
     }

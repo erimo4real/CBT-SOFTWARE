@@ -93,6 +93,8 @@ class ExamAttempt(models.Model):
     passed = models.BooleanField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.IN_PROGRESS)
     answers = models.JSONField(default=dict, blank=True)
+    tab_switches = models.PositiveIntegerField(default=0)
+    violations = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ['-start_time']

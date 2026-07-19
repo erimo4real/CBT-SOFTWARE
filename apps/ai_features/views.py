@@ -7,7 +7,7 @@ from django.db.models import Avg
 import json
 
 from .services import chat_completion, generate_with_context
-from apps.courses.models import Course, Lesson, Enrollment
+from apps.courses.models import Course, Lesson, Enrollment, LessonProgress
 from apps.exams.models import Question, ExamAttempt, Answer
 from apps.analytics.models import UserAnalytics, StudySession
 from apps.certificates.models import Notification

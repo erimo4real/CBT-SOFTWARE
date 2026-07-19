@@ -47,6 +47,10 @@ const Notifications = lazy(() => import('./pages/certificates/Notifications'));
 
 // AI
 const AITutor = lazy(() => import('./pages/ai/AITutor'));
+const AIQuestionGenerator = lazy(() => import('./pages/ai/AIQuestionGenerator'));
+const AIQuizGenerator = lazy(() => import('./pages/ai/AIQuizGenerator'));
+const AIStudyPlanner = lazy(() => import('./pages/ai/AIStudyPlanner'));
+const AIWeaknessAnalysis = lazy(() => import('./pages/ai/AIWeaknessAnalysis'));
 
 // Staff management
 const StudentManager = lazy(() => import('./pages/instructor/StudentManager'));
@@ -63,6 +67,7 @@ const CategoryManager = lazy(() => import('./pages/admin/CategoryManager'));
 // Student portal pages
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const StudentExamList = lazy(() => import('./pages/student/StudentExamList'));
+const Leaderboard = lazy(() => import('./pages/student/Leaderboard'));
 
 function PageLoader() {
   return (
@@ -127,6 +132,10 @@ function App() {
 
                 {/* AI */}
                 <Route path="/ai/tutor" element={<AITutor />} />
+                <Route path="/ai/questions" element={<AIQuestionGenerator />} />
+                <Route path="/ai/quiz" element={<AIQuizGenerator />} />
+                <Route path="/ai/study-plan" element={<AIStudyPlanner />} />
+                <Route path="/ai/weakness" element={<AIWeaknessAnalysis />} />
 
                 {/* Staff: Student & Exam PIN Management */}
                 <Route path="/staff/students" element={<StudentManager />} />
@@ -148,6 +157,7 @@ function App() {
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
                 <Route path="/student/exams" element={<StudentExamList />} />
                 <Route path="/student/exams/:id" element={<StudentExamList />} />
+                <Route path="/student/leaderboard" element={<Leaderboard />} />
                 <Route path="/student/results/:id" element={<ExamResults />} />
                 <Route path="/student/results/:id/review" element={<ExamReview />} />
                 <Route path="/student/certificates" element={<Certificates />} />

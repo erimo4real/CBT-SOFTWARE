@@ -151,6 +151,9 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
+# Email
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='CBT <noreply@cbt.local>')
+
 # DRF Spectacular
 SPECTACULAR_SETTINGS = {
     'TITLE': 'CBT Platform API',

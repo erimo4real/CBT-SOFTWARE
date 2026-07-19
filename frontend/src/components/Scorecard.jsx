@@ -19,7 +19,6 @@ const Scorecard = forwardRef(({ result, user }, ref) => {
           max-width: 600px;
           margin: 0 auto;
           padding: 0;
-          display: none;
         }
         @media screen {
           .scorecard-print { display: none; }

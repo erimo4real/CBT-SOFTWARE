@@ -64,7 +64,7 @@ export default function Register() {
 
   return (
     <AuthSplitLayout subtitle={<>Create Your<br />Account</>}>
-      <Card className="shadow-xl border-0 card-shadow">
+      <Card className="shadow-xl border-0 card-shadow bg-white/90 dark:bg-background/90 backdrop-blur-md">
         <CardContent className="pt-8 pb-6 px-6">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold tracking-tight">Create Account</h1>
