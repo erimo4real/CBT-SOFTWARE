@@ -1,0 +1,147 @@
+import { useSelector } from 'react-redux';
+import { selectUser } from '@/store/slices/authSlice';
+import { NavLink } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import {
+  LayoutDashboard,
+  ClipboardList,
+  BarChart3,
+  FileText,
+  HelpCircle,
+  FolderOpen,
+  Users,
+  Settings,
+  Award,
+  Key,
+  GraduationCap,
+} from 'lucide-react';
+
+const studentNav = [
+  { to: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/student/exams', label: 'Exams', icon: ClipboardList },
+  { to: '/student/certificates', label: 'Certificates', icon: Award },
+];
+
+const staffNav = [
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/exams', label: 'Exams', icon: ClipboardList },
+  { to: '/certificates', label: 'Certificates', icon: Award },
+];
+
+const instructorNav = [
+  { to: '/staff/students', label: 'Students', icon: Users },
+  { to: '/staff/exam-pins', label: 'Exam PINs', icon: Key },
+  { to: '/instructor/courses', label: 'Course Manager', icon: FileText },
+  { to: '/instructor/questions', label: 'Question Bank', icon: HelpCircle },
+  { to: '/instructor/exams', label: 'Exam Builder', icon: ClipboardList },
+  { to: '/instructor/analytics', label: 'Item Analysis', icon: BarChart3 },
+];
+
+const adminNav = [
+  { to: '/staff/students', label: 'Students', icon: Users },
+  { to: '/staff/exam-pins', label: 'Exam PINs', icon: Key },
+  { to: '/admin/users', label: 'Users', icon: Users },
+  { to: '/admin/categories', label: 'Categories', icon: FolderOpen },
+];
+
+export default function Sidebar({ isOpen, onClose }) {
+  const user = useSelector(selectUser);
+
+  const isStudent = user?.role === 'student';
+  const isInstructor = user?.role === 'instructor';
+  const isAdmin = user?.role === 'admin';
+
+  const sections = [];
+
+  if (isStudent) {
+    sections.push({ label: null, items: studentNav });
+  } else {
+    sections.push({ label: null, items: staffNav });
+    if (isInstructor || isAdmin) {
+      sections.push({ label: 'Management', items: instructorNav });
+    }
+    if (isAdmin) {
+      sections.push({ label: 'Administration', items: adminNav });
+    }
+  }
+
+  return (
+    <>
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity lg:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      <aside
+        className={cn(
+          'fixed top-0 left-0 z-50 h-full w-64 bg-sidebar border-r border-sidebar-border transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:z-auto',
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        <div className="flex items-center gap-3 px-5 h-16 border-b border-sidebar-border">
+          <div className="p-1.5 rounded-lg bg-primary/10">
+            <GraduationCap className="h-6 w-6 text-primary" />
+          </div>
+          <div>
+            <span className="text-base font-bold text-sidebar-foreground tracking-tight">CBT</span>
+            <p className="text-[10px] text-muted-foreground -mt-0.5">
+              {isStudent ? 'Student Portal' : 'Staff Panel'}
+            </p>
+          </div>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+          {sections.map((section, si) => (
+            <div key={si}>
+              {section.label && (
+                <p className="px-3 mb-2 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-1">
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    onClick={onClose}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                        isActive
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border'
+                          : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+                      )
+                    }
+                  >
+                    <item.icon className="h-[18px] w-[18px] shrink-0" />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
+        </nav>
+
+        <div className="p-3 border-t border-sidebar-border">
+          <NavLink
+            to={isStudent ? '/student/dashboard' : '/profile'}
+            onClick={onClose}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+              )
+            }
+          >
+            <Settings className="h-[18px] w-[18px] shrink-0" />
+            {isStudent ? 'Back to Portal' : 'Profile & Settings'}
+          </NavLink>
+        </div>
+      </aside>
+    </>
+  );
+}
