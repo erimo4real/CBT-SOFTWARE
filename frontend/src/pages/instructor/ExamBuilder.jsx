@@ -18,12 +18,16 @@ import PageTransition from '../../components/PageTransition';
 import { CourseCardSkeleton } from '../../components/Skeletons';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Settings, Eye, EyeOff, GripVertical, Search,
+  Plus, Pencil, Trash2, Settings, Eye, EyeOff,
 } from 'lucide-react';
+import usePagination from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
+import TableFilters from '@/components/TableFilters';
 
 export default function ExamBuilder() {
   const [exams, setExams] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
@@ -35,6 +39,8 @@ export default function ExamBuilder() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  const { page, search, filters, params, setPage, setSearch, setFilter, clearFilters, totalPages } = usePagination();
+
   const [form, setForm] = useState({
     title: '', description: '', course: '', duration: 60,
     passing_score: 50, allowed_attempts: 1, start_date: '', end_date: '',
@@ -43,16 +49,20 @@ export default function ExamBuilder() {
 
   useEffect(() => {
     loadData();
+  }, [page, search, filters]);
+
+  useEffect(() => {
+    coursesAPI.getCourses().then(res => setCourses(res.data.results || res.data)).catch(() => {});
   }, []);
 
   async function loadData() {
+    setLoading(true);
     try {
-      const [examsRes, coursesRes] = await Promise.all([
-        examsAPI.getExams({ published: 'true' }),
-        coursesAPI.getCourses(),
-      ]);
-      setExams(examsRes.data.results || examsRes.data);
-      setCourses(coursesRes.data.results || coursesRes.data);
+      const query = { ...params, published: 'true' };
+      if (filters.course) query.course = filters.course;
+      const examsRes = await examsAPI.getExams(query);
+      setExams(examsRes.data.results || []);
+      setCount(examsRes.data.count || 0);
     } catch {
       toast.error('Failed to load data');
     } finally {
@@ -205,6 +215,18 @@ export default function ExamBuilder() {
         <Button onClick={openCreate} className="shrink-0"><Plus className="h-4 w-4 mr-2" />New Exam</Button>
       </div>
 
+      <TableFilters
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search exams..."
+        filters={[
+          { key: 'course', label: 'All courses', options: courses.map(c => ({ value: c.id, label: c.title })) },
+        ]}
+        values={filters}
+        onFilter={setFilter}
+        onClear={clearFilters}
+      />
+
       {exams.length === 0 ? (
         <Card><CardContent className="flex flex-col items-center justify-center py-12">
           <Settings className="h-12 w-12 text-muted-foreground mb-4" />
@@ -243,6 +265,8 @@ export default function ExamBuilder() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages(count)} totalItems={count} onPageChange={setPage} />
 
       {/* Create/Edit Exam Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

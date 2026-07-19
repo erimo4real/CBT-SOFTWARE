@@ -1,16 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { examsAPI } from '@/api/exams';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import PageTransition from '@/components/PageTransition';
 import { ListSkeleton } from '@/components/Skeletons';
-import { Bookmark, Trash2, BookOpen } from 'lucide-react';
+import Pagination from '@/components/Pagination';
+import { Bookmark, Trash2, BookOpen, Search } from 'lucide-react';
 import { toast } from 'sonner';
+
+const PAGE_SIZE = 10;
 
 export default function Bookmarks() {
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     examsAPI.getBookmarks()
@@ -18,6 +24,20 @@ export default function Bookmarks() {
       .catch(() => toast.error('Failed to load bookmarks'))
       .finally(() => setLoading(false));
   }, []);
+
+  const filtered = useMemo(() => {
+    if (!search) return bookmarks;
+    const q = search.toLowerCase();
+    return bookmarks.filter(b => {
+      const text = typeof b.content === 'string' ? b.content : b.content?.text || '';
+      return text.toLowerCase().includes(q) || b.subject?.toLowerCase().includes(q) || b.topic?.toLowerCase().includes(q);
+    });
+  }, [bookmarks, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [search]);
 
   const removeBookmark = async (id) => {
     try {
@@ -38,18 +58,25 @@ export default function Bookmarks() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Bookmarks</h1>
-        <p className="text-muted-foreground">Questions you've saved for review</p>
-      </div>
+          <p className="text-muted-foreground">Questions you've saved for review</p>
+        </div>
 
-      {bookmarks.length === 0 ? (
+        {bookmarks.length > 0 && (
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Search bookmarks..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        )}
+
+      {paged.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Bookmark className="mx-auto h-12 w-12 mb-4 opacity-50" />
-          <p>No bookmarked questions yet</p>
-          <p className="text-sm mt-1">Bookmark questions during practice or exams to review them later</p>
+          <p>{search ? 'No matching bookmarks' : 'No bookmarked questions yet'}</p>
+          {!search && <p className="text-sm mt-1">Bookmark questions during practice or exams to review them later</p>}
         </div>
       ) : (
         <div className="space-y-3">
-          {bookmarks.map((bm) => {
+          {paged.map((bm) => {
             const content = bm.content;
             const text = typeof content === 'string' ? content : content?.text || '';
             return (
@@ -88,6 +115,8 @@ export default function Bookmarks() {
           })}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
     </PageTransition>
   );

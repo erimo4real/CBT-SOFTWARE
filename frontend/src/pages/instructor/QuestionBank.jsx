@@ -16,8 +16,11 @@ import PageTransition from '../../components/PageTransition';
 import { ListSkeleton } from '../../components/Skeletons';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Upload, Search, Filter, FileText,
+  Plus, Pencil, Trash2, Upload, FileText,
 } from 'lucide-react';
+import usePagination from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
+import TableFilters from '@/components/TableFilters';
 
 const Q_TYPES = [
   { value: 'mcq', label: 'Multiple Choice' },
@@ -30,6 +33,7 @@ const DIFFICULTIES = ['easy', 'medium', 'hard'];
 
 export default function QuestionBank() {
   const [questions, setQuestions] = useState([]);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -38,10 +42,9 @@ export default function QuestionBank() {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ subject: '', topic: '', type: '', difficulty: '' });
-  const [showFilters, setShowFilters] = useState(false);
   const fileRef = useRef(null);
+
+  const { page, search, filters, params, setPage, setSearch, setFilter, clearFilters, totalPages } = usePagination();
 
   const [form, setForm] = useState({
     subject: '', topic: '', question_type: 'mcq', difficulty: 'medium',
@@ -49,21 +52,14 @@ export default function QuestionBank() {
     explanation: '', marks: 1, tags: '',
   });
 
-  useEffect(() => {
-    loadQuestions();
-  }, [search, filters]);
+  useEffect(() => { loadQuestions(); }, [page, search, filters]);
 
   async function loadQuestions() {
     setLoading(true);
     try {
-      const params = {};
-      if (search) params.search = search;
-      if (filters.subject) params.subject = filters.subject;
-      if (filters.topic) params.topic = filters.topic;
-      if (filters.type) params.type = filters.type;
-      if (filters.difficulty) params.difficulty = filters.difficulty;
       const res = await examsAPI.getQuestions(params);
-      setQuestions(res.data.results || res.data);
+      setQuestions(res.data.results || []);
+      setCount(res.data.count || 0);
     } catch {
       toast.error('Failed to load questions');
     } finally {
@@ -181,7 +177,7 @@ export default function QuestionBank() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Question Bank</h1>
-          <p className="text-muted-foreground">{questions.length} questions</p>
+          <p className="text-muted-foreground">{count} questions</p>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="h-4 w-4 mr-2" />Import CSV</Button>
@@ -189,48 +185,20 @@ export default function QuestionBank() {
         </div>
       </div>
 
-      {/* Search & Filters */}
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search questions..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
-          <Filter className="h-4 w-4 mr-2" />Filters
-        </Button>
-      </div>
-      {showFilters && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 border rounded-lg bg-muted/30">
-          <div className="space-y-1">
-            <Label className="text-xs">Subject</Label>
-            <Input value={filters.subject} onChange={e => setFilters({ ...filters, subject: e.target.value })} placeholder="e.g. Mathematics" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Topic</Label>
-            <Input value={filters.topic} onChange={e => setFilters({ ...filters, topic: e.target.value })} placeholder="e.g. Algebra" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Type</Label>
-            <Select value={filters.type} onValueChange={v => setFilters({ ...filters, type: v })}>
-              <SelectTrigger><SelectValue placeholder="All types" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All types</SelectItem>
-                {Q_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Difficulty</Label>
-            <Select value={filters.difficulty} onValueChange={v => setFilters({ ...filters, difficulty: v })}>
-              <SelectTrigger><SelectValue placeholder="All levels" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All levels</SelectItem>
-                {DIFFICULTIES.map(d => <SelectItem key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
+      <TableFilters
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search questions..."
+        filters={[
+          { key: 'subject', label: 'All subjects', options: [{ value: 'mathematics', label: 'Mathematics' }, { value: 'science', label: 'Science' }, { value: 'english', label: 'English' }] },
+          { key: 'topic', label: 'All topics', options: [] },
+          { key: 'type', label: 'All types', options: Q_TYPES.map(t => ({ value: t.value, label: t.label })) },
+          { key: 'difficulty', label: 'All levels', options: DIFFICULTIES.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1) })) },
+        ]}
+        values={filters}
+        onFilter={setFilter}
+        onClear={clearFilters}
+      />
 
       {/* Questions List */}
       {loading ? (
@@ -266,6 +234,8 @@ export default function QuestionBank() {
           })}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages(count)} totalItems={count} onPageChange={setPage} />
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

@@ -1,17 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { certificatesAPI } from '@/api/certificates';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import PageTransition from '@/components/PageTransition';
 import { ListSkeleton } from '@/components/Skeletons';
-import { Award, Download, ExternalLink, Calendar } from 'lucide-react';
+import Pagination from '@/components/Pagination';
+import { Award, Download, ExternalLink, Calendar, Search } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
+
+const PAGE_SIZE = 10;
 
 export default function Certificates() {
   const [certificates, setCertificates] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     certificatesAPI.getCertificates()
@@ -19,6 +25,19 @@ export default function Certificates() {
       .catch(() => toast.error('Failed to load certificates'))
       .finally(() => setLoading(false));
   }, []);
+
+  const filtered = useMemo(() => {
+    if (!search) return certificates;
+    const q = search.toLowerCase();
+    return certificates.filter(c =>
+      c.course_title?.toLowerCase().includes(q) || c.user_name?.toLowerCase().includes(q)
+    );
+  }, [certificates, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [search]);
 
   if (loading) {
     return <ListSkeleton />;
@@ -29,18 +48,25 @@ export default function Certificates() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Certificates</h1>
-        <p className="text-muted-foreground">Your earned certificates of completion</p>
-      </div>
+          <p className="text-muted-foreground">Your earned certificates of completion</p>
+        </div>
 
-      {certificates.length === 0 ? (
+        {certificates.length > 0 && (
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Search certificates..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+        )}
+
+      {paged.length === 0 ? (
         <div className="text-center py-12">
           <Award className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground mb-2">No certificates yet</p>
-          <p className="text-sm text-muted-foreground">Complete a course to earn your first certificate</p>
+          <p className="text-muted-foreground mb-2">{search ? 'No matching certificates' : 'No certificates yet'}</p>
+          <p className="text-sm text-muted-foreground">{search ? 'Try a different search' : 'Complete a course to earn your first certificate'}</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {certificates.map((cert) => (
+          {paged.map((cert) => (
             <Card key={cert.id}>
               <CardContent className="pt-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <div className="p-3 rounded-lg bg-amber-100 shrink-0">
@@ -86,6 +112,8 @@ export default function Certificates() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
     </PageTransition>
   );

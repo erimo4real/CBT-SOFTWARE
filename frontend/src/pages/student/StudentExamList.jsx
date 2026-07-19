@@ -6,9 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import Pagination from '@/components/Pagination';
 import {
   ClipboardList, Clock, Search, Play, CheckCircle2, CalendarClock, Lock, Hourglass,
 } from 'lucide-react';
+
+const PAGE_SIZE = 8;
 
 function useCountdown(targetDate) {
   const [now, setNow] = useState(Date.now());
@@ -33,6 +36,7 @@ export default function StudentExamList() {
   const [exams, setExams] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,6 +52,11 @@ export default function StudentExamList() {
   const filtered = exams.filter((e) =>
     e.title.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [search]);
 
   const getAttemptCount = (examId) =>
     attempts.filter((a) => a.exam === examId || a.exam?.id === examId).length;
@@ -75,25 +84,28 @@ export default function StudentExamList() {
             <Card key={i}><CardContent className="pt-4 space-y-3"><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-8 w-24" /></CardContent></Card>
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : paged.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
             <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="text-lg font-medium">No exams found</p>
-            <p className="text-sm mt-1">Check back later for available exams</p>
+            <p className="text-sm mt-1">{search ? 'Try a different search' : 'Check back later for available exams'}</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 stagger-children">
-          {filtered.map((exam) => (
-            <ExamCard
-              key={exam.id}
-              exam={exam}
-              attemptCount={getAttemptCount(exam.id)}
-              onNavigate={navigate}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-2 stagger-children">
+            {paged.map((exam) => (
+              <ExamCard
+                key={exam.id}
+                exam={exam}
+                attemptCount={getAttemptCount(exam.id)}
+                onNavigate={navigate}
+              />
+            ))}
+          </div>
+          <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+        </>
       )}
     </div>
   );

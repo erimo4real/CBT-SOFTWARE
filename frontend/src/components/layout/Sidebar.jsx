@@ -47,7 +47,7 @@ const staffAiNav = [
 const instructorNav = [
   { to: '/staff/students', label: 'Students', icon: Users },
   { to: '/staff/exam-pins', label: 'Exam PINs', icon: Key },
-  { to: '/instructor/courses', label: 'Course Manager', icon: FileText },
+  { to: '/instructor/courses', label: 'Topics', icon: FileText },
   { to: '/instructor/questions', label: 'Question Bank', icon: HelpCircle },
   { to: '/instructor/exams', label: 'Exam Builder', icon: ClipboardList },
   { to: '/instructor/analytics', label: 'Item Analysis', icon: BarChart3 },
@@ -57,7 +57,8 @@ const adminNav = [
   { to: '/staff/students', label: 'Students', icon: Users },
   { to: '/staff/exam-pins', label: 'Exam PINs', icon: Key },
   { to: '/admin/users', label: 'Users', icon: Users },
-  { to: '/admin/categories', label: 'Categories', icon: FolderOpen },
+  { to: '/admin/categories', label: 'Subjects', icon: FolderOpen },
+  { to: '/instructor/courses', label: 'Topics', icon: FileText },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -98,13 +99,13 @@ export default function Sidebar({ isOpen, onClose }) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center gap-3 px-5 h-16 border-b border-sidebar-border">
-          <div className="p-1.5 rounded-lg bg-primary/10">
+        <div className="flex items-center gap-3 px-5 h-16 border-b border-sidebar-border bg-gradient-to-r from-primary/5 to-transparent">
+          <div className="p-2 rounded-xl bg-primary/10 shadow-sm">
             <GraduationCap className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <span className="text-base font-bold text-sidebar-foreground tracking-tight">CBT</span>
-            <p className="text-[10px] text-muted-foreground -mt-0.5">
+            <span className="text-lg font-bold text-sidebar-foreground tracking-tight">CBT</span>
+            <p className="text-[10px] text-muted-foreground font-medium -mt-0.5">
               {isStudent ? 'Student Portal' : 'Staff Panel'}
             </p>
           </div>
@@ -114,11 +115,11 @@ export default function Sidebar({ isOpen, onClose }) {
           {sections.map((section, si) => (
             <div key={si}>
               {section.label && (
-                <p className="px-3 mb-2 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">
+                <p className="px-3 mb-2 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-[0.15em]">
                   {section.label}
                 </p>
               )}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {section.items.map((item) => (
                   <NavLink
                     key={item.to}
@@ -142,9 +143,9 @@ export default function Sidebar({ isOpen, onClose }) {
           ))}
         </nav>
 
-        <div className="p-3 border-t border-sidebar-border space-y-1">
+        <div className="p-3 border-t border-sidebar-border space-y-0.5">
           <NavLink
-            to={isStudent ? '/student/dashboard' : '/profile'}
+            to={isStudent ? '/student/profile' : '/profile'}
             onClick={onClose}
             className={({ isActive }) =>
               cn(
@@ -156,25 +157,23 @@ export default function Sidebar({ isOpen, onClose }) {
             }
           >
             <User className="h-[18px] w-[18px] shrink-0" />
-            {isStudent ? 'Back to Portal' : 'Profile'}
+            Profile
           </NavLink>
-          {!isStudent && (
-            <NavLink
-              to="/settings"
-              onClick={onClose}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
-                  isActive
-                    ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border'
-                    : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
-                )
-              }
-            >
-              <Settings className="h-[18px] w-[18px] shrink-0" />
-              Settings
-            </NavLink>
-          )}
+          <NavLink
+            to={isStudent ? '/student/settings' : '/settings'}
+            onClick={onClose}
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm ring-1 ring-sidebar-border'
+                  : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground'
+              )
+            }
+          >
+            <Settings className="h-[18px] w-[18px] shrink-0" />
+            Settings
+          </NavLink>
         </div>
       </aside>
     </>

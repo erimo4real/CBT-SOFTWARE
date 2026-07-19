@@ -15,11 +15,14 @@ import {
   Loader2, Copy, CheckCircle2, XCircle, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import usePagination from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
+import TableFilters from '@/components/TableFilters';
 
 export default function StudentManager() {
   const [students, setStudents] = useState([]);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showDetail, setShowDetail] = useState(null);
@@ -28,15 +31,20 @@ export default function StudentManager() {
   const [bulkAction, setBulkAction] = useState('');
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  const { page, search, filters, params, setPage, setSearch, setFilter, clearFilters, totalPages } = usePagination();
+
   const fetchStudents = () => {
     setLoading(true);
-    studentsAPI.list({ search: search || undefined })
-      .then((res) => setStudents(res.data.results || []))
+    studentsAPI.list(params)
+      .then((res) => {
+        setStudents(res.data.results || []);
+        setCount(res.data.count || 0);
+      })
       .catch(() => toast.error('Failed to load students'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchStudents(); }, [search]);
+  useEffect(() => { fetchStudents(); }, [page, search, filters]);
 
   const toggleSelect = (id) => {
     setSelected(prev => {
@@ -99,10 +107,23 @@ export default function StudentManager() {
         </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search by name, email, reg#..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
-      </div>
+      <TableFilters
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search by name, email, reg#..."
+        filters={[{
+          key: 'account_status',
+          label: 'All statuses',
+          options: [
+            { value: 'active', label: 'Active' },
+            { value: 'inactive', label: 'Inactive' },
+            { value: 'suspended', label: 'Suspended' },
+          ],
+        }]}
+        values={filters}
+        onFilter={setFilter}
+        onClear={clearFilters}
+      />
 
       {/* Bulk action bar */}
       {selected.size > 0 && (
@@ -197,6 +218,8 @@ export default function StudentManager() {
           </CardContent>
         </Card>
       )}
+
+      <Pagination page={page} totalPages={totalPages(count)} totalItems={count} onPageChange={setPage} />
 
       {/* Create Student Dialog */}
       <CreateStudentDialog open={showCreate} onClose={() => setShowCreate(false)} onCreated={(pw) => {

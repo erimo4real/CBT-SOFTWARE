@@ -91,15 +91,15 @@ export default function CourseManager() {
       if (payload.category === '') delete payload.category;
       if (editingCourse) {
         await coursesAPI.updateCourse(editingCourse.id, payload);
-        toast.success('Course updated');
+        toast.success('Topic updated');
       } else {
         await coursesAPI.createCourse(payload);
-        toast.success('Course created');
+        toast.success('Topic created');
       }
       setDialogOpen(false);
       loadData();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to save course');
+      toast.error(err.response?.data?.detail || 'Failed to save topic');
     } finally {
       setSaving(false);
     }
@@ -108,11 +108,11 @@ export default function CourseManager() {
   async function deleteCourse(id) {
     try {
       await coursesAPI.deleteCourse(id);
-      toast.success('Course deleted');
+      toast.success('Topic deleted');
       setCourses(courses.filter(c => c.id !== id));
       setDeleteConfirm(null);
     } catch {
-      toast.error('Failed to delete course');
+      toast.error('Failed to delete topic');
     }
   }
 
@@ -123,7 +123,7 @@ export default function CourseManager() {
       const res = await coursesAPI.getLessons(course.id);
       setLessons(res.data.results || res.data);
     } catch {
-      toast.error('Failed to load lessons');
+      toast.error('Failed to load chapters');
     }
   }
 
@@ -156,16 +156,16 @@ export default function CourseManager() {
       if (payload.order !== undefined) payload.order = Number(payload.order);
       if (editingLesson) {
         await coursesAPI.updateLesson(selectedCourse.id, editingLesson.id, payload);
-        toast.success('Lesson updated');
+        toast.success('Chapter updated');
       } else {
         await coursesAPI.createLesson(selectedCourse.id, payload);
-        toast.success('Lesson created');
+        toast.success('Chapter created');
       }
       const res = await coursesAPI.getLessons(selectedCourse.id);
       setLessons(res.data.results || res.data);
       setEditingLesson(null);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to save lesson');
+      toast.error(err.response?.data?.detail || 'Failed to save chapter');
     } finally {
       setSaving(false);
     }
@@ -174,10 +174,10 @@ export default function CourseManager() {
   async function deleteLesson(lessonId) {
     try {
       await coursesAPI.deleteLesson(selectedCourse.id, lessonId);
-      toast.success('Lesson deleted');
+      toast.success('Chapter deleted');
       setLessons(lessons.filter(l => l.id !== lessonId));
     } catch {
-      toast.error('Failed to delete lesson');
+      toast.error('Failed to delete chapter');
     }
   }
 
@@ -198,18 +198,18 @@ export default function CourseManager() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Course Manager</h1>
-          <p className="text-muted-foreground">Create and manage your courses</p>
+            <h1 className="text-2xl font-bold tracking-tight">Topics</h1>
+          <p className="text-muted-foreground">Create and manage your topics</p>
         </div>
-        <Button onClick={openCreate} className="shrink-0"><Plus className="h-4 w-4 mr-2" />New Course</Button>
+        <Button onClick={openCreate} className="shrink-0"><Plus className="h-4 w-4 mr-2" />New Topic</Button>
       </div>
 
       {courses.length === 0 ? (
         <Card><CardContent className="flex flex-col items-center justify-center py-12">
           <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium">No courses yet</p>
-          <p className="text-sm text-muted-foreground mb-4">Create your first course to get started</p>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Create Course</Button>
+          <p className="text-lg font-medium">No topics yet</p>
+          <p className="text-sm text-muted-foreground mb-4">Create your first topic to get started</p>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Create Topic</Button>
         </CardContent></Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -226,7 +226,7 @@ export default function CourseManager() {
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground line-clamp-2">{course.description || 'No description'}</p>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{course.lessons_count || 0} lessons</span>
+                  <span className="flex items-center gap-1"><BookOpen className="h-3.5 w-3.5" />{course.lessons_count || 0} chapters</span>
                   <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" />{course.students_count || 0} students</span>
                 </div>
                 <div className="flex items-center justify-between pt-2 border-t">
@@ -234,7 +234,7 @@ export default function CourseManager() {
                     {course.is_published ? <><Eye className="h-3 w-3 mr-1" />Published</> : <><EyeOff className="h-3 w-3 mr-1" />Draft</>}
                   </Badge>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => openLessons(course)} title="Manage Lessons">
+                    <Button variant="ghost" size="sm" onClick={() => openLessons(course)} title="Manage Chapters">
                       <BookOpen className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => openEdit(course)} title="Edit">
@@ -251,10 +251,10 @@ export default function CourseManager() {
         </div>
       )}
 
-      {/* Course Create/Edit Dialog */}
+      {/* Topic Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingCourse ? 'Edit Course' : 'New Course'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingCourse ? 'Edit Topic' : 'New Topic'}</DialogTitle></DialogHeader>
           <form onSubmit={saveCourse} className="space-y-4">
             <div className="space-y-2">
               <Label>Title *</Label>
@@ -266,7 +266,7 @@ export default function CourseManager() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Category</Label>
+                <Label>Subject</Label>
                 <Select value={courseForm.category} onValueChange={v => setCourseForm({ ...courseForm, category: v })}>
                   <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                   <SelectContent>
@@ -306,11 +306,11 @@ export default function CourseManager() {
       <Dialog open={lessonDialogOpen} onOpenChange={setLessonDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Lessons — {selectedCourse?.title}</DialogTitle>
+            <DialogTitle>Chapters — {selectedCourse?.title}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             {lessons.length === 0 && !editingLesson ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No lessons yet. Add your first lesson below.</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No chapters yet. Add your first chapter below.</p>
             ) : (
               lessons.sort((a, b) => a.order - b.order).map(lesson => (
                 <div key={lesson.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -330,7 +330,7 @@ export default function CourseManager() {
             )}
             {editingLesson !== null || lessons.length === 0 ? (
               <form onSubmit={saveLesson} className="border-t pt-4 space-y-3">
-                <p className="text-sm font-medium">{editingLesson ? 'Edit Lesson' : 'Add Lesson'}</p>
+                <p className="text-sm font-medium">{editingLesson ? 'Edit Chapter' : 'Add Chapter'}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Title *</Label>
@@ -373,7 +373,7 @@ export default function CourseManager() {
                 </div>
               </form>
             ) : (
-              <Button variant="outline" size="sm" onClick={openCreateLesson} className="w-full"><Plus className="h-4 w-4 mr-2" />Add Lesson</Button>
+              <Button variant="outline" size="sm" onClick={openCreateLesson} className="w-full"><Plus className="h-4 w-4 mr-2" />Add Chapter</Button>
             )}
           </div>
         </DialogContent>
@@ -382,8 +382,8 @@ export default function CourseManager() {
       {/* Delete Confirmation */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Delete Course?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">This will permanently remove the course and all its lessons. This action cannot be undone.</p>
+          <DialogHeader><DialogTitle>Delete Topic?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">This will permanently remove the topic and all its lessons. This action cannot be undone.</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
             <Button variant="destructive" onClick={() => deleteCourse(deleteConfirm)}>Delete</Button>

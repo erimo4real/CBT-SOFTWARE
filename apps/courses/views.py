@@ -8,7 +8,7 @@ from .serializers import (
     CategorySerializer, CourseListSerializer, CourseDetailSerializer,
     LessonSerializer, EnrollmentSerializer, LessonProgressSerializer,
 )
-from apps.accounts.permissions import IsInstructor, IsAdmin
+from apps.accounts.permissions import IsInstructor, IsAdmin, IsInstructorOrAdmin
 
 
 # ── Categories ──
@@ -114,7 +114,7 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
 class InstructorCoursesView(generics.ListAPIView):
     """List courses belonging to the logged-in instructor."""
     serializer_class = CourseListSerializer
-    permission_classes = [IsInstructor]
+    permission_classes = [IsInstructorOrAdmin]
 
     def get_queryset(self):
         return Course.objects.filter(instructor=self.request.user).select_related(

@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import {
   ClipboardList, Trophy, Award, Clock, ArrowRight, Play, CheckCircle2,
-  Flame, BookOpen, TrendingUp, Target, Zap,
+  Flame, BookOpen, TrendingUp, Target, Zap, Sparkles,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
@@ -51,15 +51,14 @@ export default function StudentDashboard() {
     : 0;
 
   const statCards = [
-    { label: 'Study Streak', value: stats.streak_days || 0, suffix: ' days', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-    { label: 'Exams Completed', value: completedAttempts.length, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-500/10' },
-    { label: 'Average Score', value: avgScore, suffix: '%', icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-    { label: 'Best Score', value: bestScore, suffix: '%', icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-    { label: 'XP Points', value: stats.xp_points || 0, suffix: ' XP', icon: Zap, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-    { label: 'Level', value: stats.level || 1, icon: Target, color: 'text-rose-500', bg: 'bg-rose-500/10' },
+    { label: 'Study Streak', value: stats.streak_days || 0, suffix: ' days', icon: Flame, color: 'text-orange-500', bg: 'bg-orange-500/10', cardClass: 'stat-card-amber' },
+    { label: 'Exams Done', value: completedAttempts.length, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-500/10', cardClass: 'stat-card-green' },
+    { label: 'Avg Score', value: avgScore, suffix: '%', icon: TrendingUp, color: 'text-blue-500', bg: 'bg-blue-500/10', cardClass: 'stat-card-blue' },
+    { label: 'Best Score', value: bestScore, suffix: '%', icon: Trophy, color: 'text-amber-500', bg: 'bg-amber-500/10', cardClass: 'stat-card-amber' },
+    { label: 'XP Points', value: stats.xp_points || 0, suffix: ' XP', icon: Zap, color: 'text-purple-500', bg: 'bg-purple-500/10', cardClass: 'stat-card-purple' },
+    { label: 'Level', value: stats.level || 1, icon: Target, color: 'text-rose-500', bg: 'bg-rose-500/10', cardClass: 'stat-card-red' },
   ];
 
-  // Build chart data from recent attempts (last 10)
   const chartData = completedAttempts
     .slice(-10)
     .map((a, i) => ({
@@ -69,31 +68,45 @@ export default function StudentDashboard() {
     }));
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">
-          Welcome back, {user?.first_name || user?.full_name || 'Student'}
-        </h1>
-        <p className="text-muted-foreground">
-          Reg: {user?.reg_number || 'N/A'} &middot; {user?.class_level || 'No class assigned'}
-          {stats.streak_days > 0 && (
-            <span className="ml-2 inline-flex items-center gap-1 text-orange-500 font-medium">
-              <Flame className="h-3.5 w-3.5" /> {stats.streak_days}-day streak!
-            </span>
-          )}
-        </p>
+    <div className="space-y-6 animate-slide-up">
+      {/* Hero Banner */}
+      <div className="hero-banner rounded-2xl p-6 sm:p-8">
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-xs font-semibold text-primary uppercase tracking-wider">Student Portal</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Welcome back, {user?.first_name || user?.full_name || 'Student'}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Reg: {user?.reg_number || 'N/A'} · {user?.class_level || 'No class assigned'}
+          </p>
+          <div className="flex items-center gap-3 mt-4 flex-wrap">
+            {stats.streak_days > 0 && (
+              <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-0">
+                <Flame className="h-3 w-3 mr-1" /> {stats.streak_days}-day streak!
+              </Badge>
+            )}
+            <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-0">
+              <Zap className="h-3 w-3 mr-1" /> Level {stats.level || 1}
+            </Badge>
+            <Button size="sm" className="btn-press" onClick={() => navigate('/student/exams')}>
+              <Play className="h-3.5 w-3.5 mr-1.5" /> Take an Exam
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 stagger-children">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 stagger-children">
         {statCards.map((s, i) => (
-          <Card key={i} className="card-shadow border-0">
+          <Card key={i} className={`card-shadow border-0 stat-card-premium ${s.cardClass} overflow-hidden`}>
             <CardContent className="pt-4 pb-3 px-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">{s.label}</p>
-                  <p className="text-xl font-bold mt-0.5">
+                  <p className="text-xs text-muted-foreground font-medium">{s.label}</p>
+                  <p className="text-xl font-bold mt-0.5 tracking-tight">
                     {loading ? '—' : s.value}{!loading && s.suffix ? <span className="text-sm font-normal text-muted-foreground">{s.suffix}</span> : ''}
                   </p>
                 </div>
@@ -111,14 +124,15 @@ export default function StudentDashboard() {
         {/* Score Trend */}
         <Card className="card-shadow border-0">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Score Trend</CardTitle>
+            <CardTitle className="text-sm font-semibold">Score Trend</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <Skeleton className="h-48 w-full" />
             ) : chartData.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                No exam results yet
+              <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
+                <BarChart className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-sm">No exam results yet</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={200}>
@@ -144,24 +158,25 @@ export default function StudentDashboard() {
         {/* Course Progress */}
         <Card className="card-shadow border-0">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Course Progress</CardTitle>
+            <CardTitle className="text-sm font-semibold">Course Progress</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
             ) : enrollments.length === 0 ? (
-              <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">
-                <BookOpen className="h-8 w-8 mr-2 opacity-30" /> No enrollments yet
+              <div className="h-48 flex flex-col items-center justify-center text-muted-foreground">
+                <BookOpen className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-sm">No enrollments yet</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {enrollments.slice(0, 5).map((en) => {
                   const progress = en.progress || 0;
                   return (
-                    <div key={en.id} className="space-y-1">
+                    <div key={en.id} className="space-y-1.5">
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-medium truncate pr-2">{en.course_title || en.course?.title || 'Course'}</span>
-                        <span className="text-muted-foreground shrink-0">{Math.round(progress)}%</span>
+                        <span className="text-muted-foreground shrink-0 font-medium">{Math.round(progress)}%</span>
                       </div>
                       <Progress value={progress} className="h-2" />
                     </div>
@@ -175,8 +190,8 @@ export default function StudentDashboard() {
 
       {/* Available Exams */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Available Exams</h2>
+        <div className="section-header">
+          <h2>Available Exams</h2>
           <Button variant="ghost" size="sm" onClick={() => navigate('/student/exams')}>
             View All <ArrowRight className="h-4 w-4 ml-1" />
           </Button>
@@ -188,16 +203,17 @@ export default function StudentDashboard() {
             ))}
           </div>
         ) : exams.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
+          <Card className="card-shadow border-0">
+            <CardContent className="py-10 text-center text-muted-foreground">
               <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-30" />
-              <p>No exams available yet</p>
+              <p className="font-medium">No exams available yet</p>
+              <p className="text-sm mt-1">Check back later for new exams</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {exams.slice(0, 6).map((exam) => (
-              <Card key={exam.id} className="card-shadow border-0 hover:shadow-md transition-all cursor-pointer" onClick={() => navigate(`/student/exams/${exam.id}`)}>
+              <Card key={exam.id} className="card-shadow border-0 hover-lift cursor-pointer" onClick={() => navigate(`/student/exams/${exam.id}`)}>
                 <CardContent className="pt-4 pb-3 px-5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -209,7 +225,7 @@ export default function StudentDashboard() {
                         <span>{exam.total_marks} marks</span>
                       </div>
                     </div>
-                    <Button size="sm" className="shrink-0">
+                    <Button size="sm" className="shrink-0 btn-press">
                       <Play className="h-3.5 w-3.5 mr-1" /> Start
                     </Button>
                   </div>
@@ -223,22 +239,35 @@ export default function StudentDashboard() {
       {/* Recent Results */}
       {completedAttempts.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold mb-4">Recent Results</h2>
+          <div className="section-header">
+            <h2>Recent Results</h2>
+          </div>
           <div className="space-y-2">
             {completedAttempts.slice(0, 5).map((a) => (
-              <Card key={a.id} className="border-0">
+              <Card key={a.id} className="card-shadow border-0">
                 <CardContent className="py-3 px-5 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{a.exam_title || a.exam?.title || 'Exam'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(a.start_time).toLocaleDateString()}
-                    </p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    {a.passed ? (
+                      <div className="h-8 w-8 rounded-lg bg-green-50 dark:bg-green-950/30 flex items-center justify-center shrink-0">
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      </div>
+                    ) : (
+                      <div className="h-8 w-8 rounded-lg bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0">
+                        <Award className="h-4 w-4 text-red-500" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{a.exam_title || a.exam?.title || 'Exam'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(a.start_time).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className={a.passed ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <Badge className={a.passed ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}>
                       {Number(a.percentage) || 0}%
                     </Badge>
-                    <Button size="sm" variant="ghost" onClick={() => navigate(`/student/results/${a.id}`)}>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => navigate(`/student/results/${a.id}`)}>
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>

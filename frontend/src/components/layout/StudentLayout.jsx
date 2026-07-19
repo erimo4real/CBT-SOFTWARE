@@ -1,16 +1,24 @@
 import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 
 export default function StudentLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
-      <TopBar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 pt-20">
-        <Outlet />
-      </main>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <TopBar onMenuToggle={() => setSidebarOpen((prev) => !prev)} />
+
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <div className="max-w-5xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

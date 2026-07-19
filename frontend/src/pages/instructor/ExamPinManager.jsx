@@ -15,25 +15,32 @@ import {
   Key, Plus, Loader2, Copy, Printer, Trash2, Clock, Users,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import usePagination from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
+import TableFilters from '@/components/TableFilters';
 
 export default function ExamPinManager() {
   const [pins, setPins] = useState([]);
   const [exams, setExams] = useState([]);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+
+  const { page, search, filters, params, setPage, setSearch, setFilter, clearFilters, totalPages } = usePagination();
 
   const fetchPins = () => {
     setLoading(true);
     Promise.all([
-      examPinsAPI.list({}).catch(() => ({ data: { results: [] } })),
+      examPinsAPI.list(params).catch(() => ({ data: { results: [], count: 0 } })),
       examsAPI.list({}).catch(() => ({ data: { results: [] } })),
     ]).then(([pinsRes, examsRes]) => {
       setPins(pinsRes.data.results || []);
+      setCount(pinsRes.data.count || 0);
       setExams(examsRes.data.results || []);
     }).finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchPins(); }, []);
+  useEffect(() => { fetchPins(); }, [page, search, filters]);
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this PIN?')) return;
@@ -57,6 +64,18 @@ export default function ExamPinManager() {
           <Plus className="h-4 w-4 mr-2" /> Generate PIN
         </Button>
       </div>
+
+      <TableFilters
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search PINs..."
+        filters={[
+          { key: 'exam', label: 'All exams', options: exams.map(e => ({ value: e.id, label: e.title })) },
+        ]}
+        values={filters}
+        onFilter={setFilter}
+        onClear={clearFilters}
+      />
 
       {loading ? (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -118,6 +137,8 @@ export default function ExamPinManager() {
           ))}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages(count)} totalItems={count} onPageChange={setPage} />
 
       {/* Create PIN Dialog */}
       <CreatePinDialog open={showCreate} onClose={() => setShowCreate(false)} exams={exams} onCreated={fetchPins} />

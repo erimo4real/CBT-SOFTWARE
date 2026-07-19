@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { coursesAPI } from '../../api/courses';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -13,8 +13,11 @@ import { toast } from 'sonner';
 import PageTransition from '../../components/PageTransition';
 import { CourseCardSkeleton } from '../../components/Skeletons';
 import {
-  Plus, Pencil, Trash2, FolderOpen, BookOpen,
+  Plus, Pencil, Trash2, FolderOpen, BookOpen, Search,
 } from 'lucide-react';
+import Pagination from '@/components/Pagination';
+
+const PAGE_SIZE = 12;
 
 export default function CategoryManager() {
   const [categories, setCategories] = useState([]);
@@ -23,6 +26,8 @@ export default function CategoryManager() {
   const [editing, setEditing] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const [form, setForm] = useState({ name: '', description: '', icon: '' });
 
@@ -59,15 +64,15 @@ export default function CategoryManager() {
     try {
       if (editing) {
         await coursesAPI.updateCategory(editing.id, form);
-        toast.success('Category updated');
+        toast.success('Subject updated');
       } else {
         await coursesAPI.createCategory(form);
-        toast.success('Category created');
+        toast.success('Subject created');
       }
       setDialogOpen(false);
       loadCategories();
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to save category');
+      toast.error(err.response?.data?.detail || 'Failed to save subject');
     } finally {
       setSaving(false);
     }
@@ -76,13 +81,24 @@ export default function CategoryManager() {
   async function deleteCategory(id) {
     try {
       await coursesAPI.deleteCategory(id);
-      toast.success('Category deleted');
+      toast.success('Subject deleted');
       setCategories(categories.filter(c => c.id !== id));
       setDeleteConfirm(null);
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to delete category');
+      toast.error(err.response?.data?.detail || 'Failed to delete subject');
     }
   }
+
+  const filtered = useMemo(() => {
+    if (!search) return categories;
+    const q = search.toLowerCase();
+    return categories.filter(c => c.name.toLowerCase().includes(q) || (c.description || '').toLowerCase().includes(q));
+  }, [categories, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [search]);
 
   if (loading) {
     return (
@@ -99,29 +115,34 @@ export default function CategoryManager() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Category Manager</h1>
-          <p className="text-muted-foreground">{categories.length} categories</p>
+            <h1 className="text-2xl font-bold tracking-tight">Subjects</h1>
+          <p className="text-muted-foreground">{filtered.length} subjects</p>
         </div>
-        <Button onClick={openCreate} className="shrink-0"><Plus className="h-4 w-4 mr-2" />New Category</Button>
+        <Button onClick={openCreate} className="shrink-0"><Plus className="h-4 w-4 mr-2" />New Subject</Button>
       </div>
 
-      {categories.length === 0 ? (
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input className="pl-9" placeholder="Search subjects..." value={search} onChange={e => setSearch(e.target.value)} />
+      </div>
+
+      {paged.length === 0 ? (
         <Card><CardContent className="flex flex-col items-center justify-center py-12">
           <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-          <p className="text-lg font-medium">No categories yet</p>
-          <p className="text-sm text-muted-foreground mb-4">Create categories to organize courses</p>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Create Category</Button>
+          <p className="text-lg font-medium">No subjects yet</p>
+          <p className="text-sm text-muted-foreground mb-4">Create subjects to organize topics</p>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-2" />Create Subject</Button>
         </CardContent></Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {categories.map(cat => (
+          {paged.map(cat => (
             <Card key={cat.id}>
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{cat.name}</CardTitle>
                   <Badge variant="outline" className="text-xs">
                     <BookOpen className="h-3 w-3 mr-1" />
-                    {cat.course_count || 0} courses
+                    {cat.course_count || 0} topics
                   </Badge>
                 </div>
               </CardHeader>
@@ -137,10 +158,12 @@ export default function CategoryManager() {
         </div>
       )}
 
+      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
+
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editing ? 'Edit Category' : 'New Category'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? 'Edit Subject' : 'New Subject'}</DialogTitle></DialogHeader>
           <form onSubmit={saveCategory} className="space-y-4">
             <div className="space-y-2">
               <Label>Name *</Label>
@@ -165,8 +188,8 @@ export default function CategoryManager() {
       {/* Delete Confirmation */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Delete Category?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Courses in this category will become uncategorized.</p>
+          <DialogHeader><DialogTitle>Delete Subject?</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Topics in this subject will become uncategorized.</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancel</Button>
             <Button variant="destructive" onClick={() => deleteCategory(deleteConfirm)}>Delete</Button>

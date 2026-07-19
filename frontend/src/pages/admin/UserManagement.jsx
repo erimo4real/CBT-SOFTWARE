@@ -18,6 +18,9 @@ import { toast } from 'sonner';
 import {
   Search, Users, Shield, GraduationCap, BookOpen, CheckCircle, XCircle,
 } from 'lucide-react';
+import usePagination from '@/hooks/usePagination';
+import Pagination from '@/components/Pagination';
+import TableFilters from '@/components/TableFilters';
 
 const roleColors = {
   student: 'bg-blue-100 text-blue-700',
@@ -32,26 +35,21 @@ const roleIcons = {
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
+  const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [activeFilter, setActiveFilter] = useState('');
   const [editUser, setEditUser] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadUsers();
-  }, [search, roleFilter, activeFilter]);
+  const { page, search, filters, params, setPage, setSearch, setFilter, clearFilters, totalPages } = usePagination();
+
+  useEffect(() => { loadUsers(); }, [page, search, filters]);
 
   async function loadUsers() {
     setLoading(true);
     try {
-      const params = {};
-      if (search) params.search = search;
-      if (roleFilter) params.role = roleFilter;
-      if (activeFilter) params.is_active = activeFilter;
       const res = await adminUsersAPI.list(params);
-      setUsers(res.data.results || res.data);
+      setUsers(res.data.results || []);
+      setCount(res.data.count || 0);
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to load users');
     } finally {
@@ -81,7 +79,7 @@ export default function UserManagement() {
   }
 
   const stats = {
-    total: users.length,
+    total: count,
     students: users.filter(u => u.role === 'student').length,
     instructors: users.filter(u => u.role === 'instructor').length,
     admins: users.filter(u => u.role === 'admin').length,
@@ -144,29 +142,33 @@ export default function UserManagement() {
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
-        <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All roles" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All roles</SelectItem>
-            <SelectItem value="student">Student</SelectItem>
-            <SelectItem value="instructor">Instructor</SelectItem>
-            <SelectItem value="admin">Admin</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={activeFilter} onValueChange={setActiveFilter}>
-          <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All status" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All status</SelectItem>
-            <SelectItem value="true">Active</SelectItem>
-            <SelectItem value="false">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <TableFilters
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search by name or email..."
+        filters={[
+          {
+            key: 'role',
+            label: 'All roles',
+            options: [
+              { value: 'student', label: 'Student' },
+              { value: 'instructor', label: 'Instructor' },
+              { value: 'admin', label: 'Admin' },
+            ],
+          },
+          {
+            key: 'is_active',
+            label: 'All status',
+            options: [
+              { value: 'true', label: 'Active' },
+              { value: 'false', label: 'Inactive' },
+            ],
+          },
+        ]}
+        values={filters}
+        onFilter={setFilter}
+        onClear={clearFilters}
+      />
 
       {/* Users Table */}
       {loading ? (
@@ -236,6 +238,8 @@ export default function UserManagement() {
           </CardContent>
         </Card>
       )}
+
+      <Pagination page={page} totalPages={totalPages(count)} totalItems={count} onPageChange={setPage} />
 
       {/* Edit User Dialog */}
       <Dialog open={!!editUser} onOpenChange={() => setEditUser(null)}>

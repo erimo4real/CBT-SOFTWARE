@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { certificatesAPI } from '@/api/certificates';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import PageTransition from '@/components/PageTransition';
 import { ListSkeleton } from '@/components/Skeletons';
-import { Bell, CheckCheck, Award, ClipboardList, BookOpen } from 'lucide-react';
+import Pagination from '@/components/Pagination';
+import { Bell, CheckCheck, Award, ClipboardList, BookOpen, Search } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 
@@ -15,10 +17,14 @@ const typeIcons = {
   course: BookOpen,
 };
 
+const PAGE_SIZE = 15;
+
 export default function Notifications() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   const fetchNotifications = () => {
     certificatesAPI.getNotifications()
@@ -53,6 +59,17 @@ export default function Notifications() {
     if (notif.link) navigate(notif.link);
   };
 
+  const filtered = useMemo(() => {
+    if (!search) return notifications;
+    const q = search.toLowerCase();
+    return notifications.filter(n => n.title?.toLowerCase().includes(q) || n.message?.toLowerCase().includes(q));
+  }, [notifications, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [search]);
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   if (loading) {
@@ -75,14 +92,21 @@ export default function Notifications() {
         )}
       </div>
 
-      {notifications.length === 0 ? (
+      {notifications.length > 0 && (
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search notifications..." value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      )}
+
+      {paged.length === 0 ? (
         <div className="text-center py-12">
           <Bell className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-          <p className="text-muted-foreground">No notifications</p>
+          <p className="text-muted-foreground">{search ? 'No matching notifications' : 'No notifications'}</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {notifications.map((notif) => {
+          {paged.map((notif) => {
             const Icon = typeIcons[notif.type] || Bell;
             return (
               <div
@@ -112,6 +136,8 @@ export default function Notifications() {
           })}
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
       </div>
     </PageTransition>
   );

@@ -666,8 +666,9 @@ class ExamPINDetailView(generics.RetrieveDestroyAPIView):
 
 
 class ExamPrintSlipView(APIView):
-    """Generate printable exam slip HTML."""
-    permission_classes = [IsInstructorOrAdmin]
+    """Generate printable exam slip HTML. Public — no auth needed."""
+    permission_classes = []
+    authentication_classes = []
 
     def get(self, request, pin_id):
         pin = ExamPIN.objects.select_related('exam', 'created_by').filter(id=pin_id).first()
@@ -675,29 +676,81 @@ class ExamPrintSlipView(APIView):
             return Response({'error': 'PIN not found'}, status=status.HTTP_404_NOT_FOUND)
 
         html = f"""<!DOCTYPE html>
-<html><head><title>Exam Slip</title>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exam Slip — {pin.exam.title}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-body {{ font-family: Arial, sans-serif; padding: 40px; }}
-.slip {{ border: 2px solid #333; padding: 30px; max-width: 400px; margin: auto; }}
-h1 {{ font-size: 18px; text-align: center; margin-bottom: 5px; }}
-h2 {{ font-size: 14px; text-align: center; color: #666; margin-top: 0; }}
-.field {{ margin: 15px 0; }}
-.field label {{ font-size: 12px; color: #666; }}
-.field p {{ font-size: 16px; font-weight: bold; margin: 4px 0; }}
-.pin-code {{ font-size: 28px; text-align: center; letter-spacing: 8px; padding: 15px; border: 2px dashed #333; margin: 20px 0; }}
-.footer {{ font-size: 11px; color: #999; text-align: center; margin-top: 20px; }}
-@media print {{ body {{ padding: 0; }} .slip {{ border: 2px solid #000; }} }}</style>
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{ font-family: 'Inter', system-ui, sans-serif; background: #f1f5f9; padding: 32px 16px; color: #1e293b; -webkit-font-smoothing: antialiased; }}
+  .slip {{ max-width: 420px; margin: 0 auto; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.08); }}
+  .slip-header {{ background: linear-gradient(135deg, #16a34a 0%, #15803d 50%, #166534 100%); padding: 28px 28px 24px; text-align: center; position: relative; overflow: hidden; }}
+  .slip-header::before {{ content: ''; position: absolute; top: -40%; right: -20%; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.08); }}
+  .slip-header::after {{ content: ''; position: absolute; bottom: -30%; left: -10%; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.05); }}
+  .slip-header .logo {{ display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); padding: 6px 14px; border-radius: 8px; margin-bottom: 14px; position: relative; z-index: 1; }}
+  .slip-header .logo svg {{ width: 18px; height: 18px; color: #fff; }}
+  .slip-header .logo span {{ font-size: 12px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }}
+  .slip-header h1 {{ font-size: 17px; font-weight: 700; color: #fff; position: relative; z-index: 1; letter-spacing: -0.01em; }}
+  .slip-header h2 {{ font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.75); margin-top: 4px; position: relative; z-index: 1; }}
+  .slip-body {{ padding: 28px; }}
+  .field {{ margin-bottom: 20px; }}
+  .field label {{ display: block; font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }}
+  .field .value {{ font-size: 15px; font-weight: 600; color: #1e293b; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }}
+  .field .value.line {{ border: none; background: none; padding: 0; font-weight: 400; color: #64748b; border-bottom: 2px dashed #cbd5e1; border-radius: 0; padding-bottom: 6px; margin-top: 2px; }}
+  .pin-box {{ text-align: center; padding: 20px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px dashed #16a34a; border-radius: 12px; margin: 20px 0; }}
+  .pin-box label {{ display: block; font-size: 11px; font-weight: 600; color: #16a34a; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }}
+  .pin-box .pin {{ font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #166534; font-family: 'Inter', monospace; }}
+  .pin-box .hint {{ font-size: 11px; color: #16a34a; margin-top: 8px; opacity: 0.7; }}
+  .divider {{ height: 1px; background: #e2e8f0; margin: 4px 0 20px; }}
+  .footer {{ text-align: center; padding: 16px 28px 24px; }}
+  .footer p {{ font-size: 11px; color: #94a3b8; line-height: 1.6; }}
+  .footer .warning {{ display: inline-flex; align-items: center; gap: 4px; background: #fef2f2; color: #dc2626; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-size: 10px; margin-bottom: 8px; }}
+  @media print {{
+    body {{ background: #fff; padding: 0; }}
+    .slip {{ box-shadow: none; border: 1px solid #e2e8f0; border-radius: 0; }}
+    .slip-header {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  }}
+</style>
 </head><body>
 <div class="slip">
-<h1>CBT Platform - Exam Slip</h1>
-<h2>{pin.exam.title}</h2>
-<div class="field"><label>Registration Number</label><p>_______________</p></div>
-<div class="field"><label>Student Name</label><p>_______________</p></div>
-<div class="field"><label>Exam PIN</label>
-<div class="pin-code">{pin.pin}</div></div>
-<div class="field"><label>Valid Until</label><p>{pin.expires_at.strftime('%d %B %Y, %I:%M %p') if pin.expires_at else 'No expiry'}</p></div>
-<div class="footer">This slip is valid for one-time use only. Do not share your PIN.</div>
-</div></body></html>"""
+  <div class="slip-header">
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      <span>CBT</span>
+    </div>
+    <h1>{pin.exam.title}</h1>
+    <h2>Exam Access Slip</h2>
+  </div>
+  <div class="slip-body">
+    <div class="field">
+      <label>Registration Number</label>
+      <div class="value line">&nbsp;</div>
+    </div>
+    <div class="field">
+      <label>Student Name</label>
+      <div class="value line">&nbsp;</div>
+    </div>
+    <div class="pin-box">
+      <label>Your Exam PIN</label>
+      <div class="pin">{pin.pin}</div>
+      <div class="hint">Enter this PIN at the exam terminal</div>
+    </div>
+    <div class="divider"></div>
+    <div class="field">
+      <label>Valid Until</label>
+      <div class="value">{pin.expires_at.strftime('%d %B %Y, %I:%M %p') if pin.expires_at else 'No expiry'}</div>
+    </div>
+    <div class="field">
+      <label>Max Uses</label>
+      <div class="value">{pin.max_uses} attempt{'s' if pin.max_uses != 1 else ''} &middot; {pin.current_uses} used</div>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="warning">&#9888; SINGLE USE ONLY</div>
+    <p>This slip is confidential. Do not share your PIN with anyone.<br>Present this slip at the exam center on your exam day.</p>
+  </div>
+</div>
+</body></html>"""
 
         return HttpResponse(html, content_type='text/html')
 
