@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { certificatesAPI } from '@/api/certificates';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import PageTransition from '@/components/PageTransition';
 import { ListSkeleton } from '@/components/Skeletons';
 import Pagination from '@/components/Pagination';
-import { Bell, CheckCheck, Award, ClipboardList, BookOpen, Search } from 'lucide-react';
+import { Bell, CheckCheck, Award, ClipboardList, BookOpen } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
+import TableFilters from '@/components/TableFilters';
 
 const typeIcons = {
   certificate: Award,
@@ -93,10 +93,11 @@ export default function Notifications() {
       </div>
 
       {notifications.length > 0 && (
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search notifications..." value={search} onChange={e => setSearch(e.target.value)} />
-        </div>
+        <TableFilters
+          search={search}
+          onSearch={setSearch}
+          searchPlaceholder="Search notifications..."
+        />
       )}
 
       {paged.length === 0 ? (

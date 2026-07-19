@@ -5,10 +5,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
 import Pagination from '@/components/Pagination';
+import TableFilters from '@/components/TableFilters';
 import {
-  ClipboardList, Clock, Search, Play, CheckCircle2, CalendarClock, Lock, Hourglass,
+  ClipboardList, Clock, Play, CheckCircle2, CalendarClock, Lock, Hourglass,
 } from 'lucide-react';
 
 const PAGE_SIZE = 8;
@@ -36,6 +36,7 @@ export default function StudentExamList() {
   const [exams, setExams] = useState([]);
   const [attempts, setAttempts] = useState([]);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
 
@@ -49,9 +50,11 @@ export default function StudentExamList() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const filtered = exams.filter((e) =>
-    e.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = exams.filter((e) => {
+    const matchSearch = e.title.toLowerCase().includes(search.toLowerCase());
+    if (!statusFilter) return matchSearch;
+    return matchSearch && e.exam_status === statusFilter;
+  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -68,15 +71,29 @@ export default function StudentExamList() {
         <p className="text-muted-foreground">Browse and take your assigned exams</p>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search exams..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      <TableFilters
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search exams..."
+        filters={[
+          {
+            key: 'status',
+            label: 'All Statuses',
+            options: [
+              { value: 'upcoming', label: 'Upcoming' },
+              { value: 'ongoing', label: 'Ongoing' },
+              { value: 'ended', label: 'Ended' },
+            ],
+          },
+        ]}
+        values={{ status: statusFilter }}
+        onFilter={(key, value) => {
+          if (key === 'status') setStatusFilter(value);
+        }}
+        onClear={() => {
+          setStatusFilter('');
+        }}
+      />
 
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2">

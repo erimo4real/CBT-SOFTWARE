@@ -18,7 +18,7 @@ import PageTransition from '../../components/PageTransition';
 import { CourseCardSkeleton } from '../../components/Skeletons';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Settings, Eye, EyeOff,
+  Plus, Pencil, Trash2, Settings, Eye, EyeOff, Search,
 } from 'lucide-react';
 import usePagination from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination';

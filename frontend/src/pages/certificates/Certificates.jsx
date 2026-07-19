@@ -3,13 +3,13 @@ import { certificatesAPI } from '@/api/certificates';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import PageTransition from '@/components/PageTransition';
 import { ListSkeleton } from '@/components/Skeletons';
 import Pagination from '@/components/Pagination';
-import { Award, Download, ExternalLink, Calendar, Search } from 'lucide-react';
+import { Award, Download, ExternalLink, Calendar } from 'lucide-react';
 import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
+import TableFilters from '@/components/TableFilters';
 
 const PAGE_SIZE = 10;
 
@@ -52,10 +52,11 @@ export default function Certificates() {
         </div>
 
         {certificates.length > 0 && (
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search certificates..." value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
+          <TableFilters
+            search={search}
+            onSearch={setSearch}
+            searchPlaceholder="Search certificates..."
+          />
         )}
 
       {paged.length === 0 ? (

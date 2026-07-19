@@ -59,6 +59,9 @@ const adminNav = [
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/categories', label: 'Subjects', icon: FolderOpen },
   { to: '/instructor/courses', label: 'Topics', icon: FileText },
+  { to: '/instructor/questions', label: 'Question Bank', icon: HelpCircle },
+  { to: '/instructor/exams', label: 'Exam Builder', icon: ClipboardList },
+  { to: '/instructor/analytics', label: 'Item Analysis', icon: BarChart3 },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {
@@ -76,11 +79,10 @@ export default function Sidebar({ isOpen, onClose }) {
   } else {
     sections.push({ label: null, items: staffNav });
     sections.push({ label: 'AI Tools', items: staffAiNav });
-    if (isInstructor || isAdmin) {
-      sections.push({ label: 'Management', items: instructorNav });
-    }
     if (isAdmin) {
-      sections.push({ label: 'Administration', items: adminNav });
+      sections.push({ label: 'Management', items: adminNav });
+    } else if (isInstructor) {
+      sections.push({ label: 'Management', items: instructorNav });
     }
   }
 

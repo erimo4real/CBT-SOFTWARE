@@ -2,7 +2,16 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 
 export default function Pagination({ page, totalPages, totalItems, onPageChange }) {
-  if (totalPages <= 1) return null;
+  if (totalItems === undefined || totalItems === null || totalItems === 0) return null;
+  if (totalPages <= 1) {
+    return (
+      <div className="flex items-center justify-between pt-4">
+        <p className="text-sm text-muted-foreground">
+          {totalItems} total &middot; Page {page} of {totalPages}
+        </p>
+      </div>
+    );
+  }
 
   const pages = buildPageNumbers(page, totalPages);
 

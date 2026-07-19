@@ -75,7 +75,7 @@ class CourseListView(generics.ListCreateAPIView):
 
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsInstructor()]
+            return [IsInstructorOrAdmin()]
         return [AllowAny()]
 
     def perform_create(self, serializer):
@@ -93,7 +93,7 @@ class CourseDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_permissions(self):
         if self.request.method in ('PUT', 'PATCH'):
-            return [IsAuthenticated()]
+            return [IsInstructorOrAdmin()]
         if self.request.method == 'DELETE':
             return [IsInstructor() | IsAdmin()]
         return [AllowAny()]

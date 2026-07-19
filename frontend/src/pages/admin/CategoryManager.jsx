@@ -13,9 +13,10 @@ import { toast } from 'sonner';
 import PageTransition from '../../components/PageTransition';
 import { CourseCardSkeleton } from '../../components/Skeletons';
 import {
-  Plus, Pencil, Trash2, FolderOpen, BookOpen, Search,
+  Plus, Pencil, Trash2, FolderOpen, BookOpen,
 } from 'lucide-react';
 import Pagination from '@/components/Pagination';
+import TableFilters from '@/components/TableFilters';
 
 const PAGE_SIZE = 12;
 
@@ -121,10 +122,11 @@ export default function CategoryManager() {
         <Button onClick={openCreate} className="shrink-0"><Plus className="h-4 w-4 mr-2" />New Subject</Button>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Search subjects..." value={search} onChange={e => setSearch(e.target.value)} />
-      </div>
+      <TableFilters
+        search={search}
+        onSearch={setSearch}
+        searchPlaceholder="Search subjects..."
+      />
 
       {paged.length === 0 ? (
         <Card><CardContent className="flex flex-col items-center justify-center py-12">
