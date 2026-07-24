@@ -17,9 +17,17 @@ class Question(models.Model):
         MEDIUM = 'medium', 'Medium'
         HARD = 'hard', 'Hard'
 
+    CLASS_LEVELS = [
+        ('JSS1', 'JSS1'), ('JSS2', 'JSS2'), ('JSS3', 'JSS3'),
+        ('SS1', 'SS1'), ('SS2', 'SS2'), ('SS3', 'SS3'),
+        ('Level 100', 'Level 100'), ('Level 200', 'Level 200'),
+        ('Level 300', 'Level 300'), ('Level 400', 'Level 400'),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     subject = models.CharField(max_length=200)
     topic = models.CharField(max_length=200, blank=True)
+    class_level = models.CharField(max_length=50, choices=CLASS_LEVELS, blank=True)
     question_type = models.CharField(max_length=20, choices=Type.choices)
     difficulty = models.CharField(max_length=20, choices=Difficulty.choices, default=Difficulty.MEDIUM)
     content = models.JSONField(help_text='Question content with rich text, images, code blocks')
@@ -40,10 +48,14 @@ class Question(models.Model):
 
 
 class Exam(models.Model):
+    CLASS_LEVELS = Question.CLASS_LEVELS
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True)
+    class_level = models.CharField(max_length=50, choices=CLASS_LEVELS, blank=True)
     course = models.ForeignKey('courses.Course', on_delete=models.SET_NULL, null=True, blank=True, related_name='exams')
+    subjects = models.ManyToManyField('courses.Category', blank=True, related_name='exams')
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exams')
     duration = models.DurationField(help_text='Exam duration')
     total_marks = models.PositiveIntegerField(default=100)
@@ -54,6 +66,9 @@ class Exam(models.Model):
     config = models.JSONField(default=dict, blank=True, help_text='Shuffle, random, pool settings')
     anti_cheating = models.JSONField(default=dict, blank=True)
     is_published = models.BooleanField(default=False)
+    is_visible = models.BooleanField(default=False, help_text='Controls whether students see this exam')
+    visible_from = models.DateTimeField(blank=True, null=True, help_text='Auto-reveal at this time')
+    visible_until = models.DateTimeField(blank=True, null=True, help_text='Auto-hide at this time')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -62,6 +77,22 @@ class Exam(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_currently_visible(self):
+        from django.utils import timezone
+        now = timezone.now()
+        if not self.is_visible:
+            return False
+        if self.visible_from and now < self.visible_from:
+            return False
+        if self.visible_until and now > self.visible_until:
+            return False
+        return True
+
+    @property
+    def subject_names(self):
+        return list(self.subjects.values_list('name', flat=True))
 
 
 class ExamQuestion(models.Model):

@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from apps.accounts.models import User
-from apps.courses.models import Category, Course, Lesson, Enrollment
+from apps.courses.models import ClassLevel, Category, Course, Lesson, Enrollment
 from apps.exams.models import Question, Exam, ExamQuestion, ExamAttempt, Answer
 from apps.certificates.models import Certificate
 
@@ -44,35 +44,46 @@ class Command(BaseCommand):
             u = self._create_user(email, 'student123!', first, last, 'student', reg_number=reg, class_level=level)
             students.append(u)
 
+        # ── Class Levels ──
+        default_levels = [
+            ('JSS1', 1), ('JSS2', 2), ('JSS3', 3),
+            ('SS1', 4), ('SS2', 5), ('SS3', 6),
+            ('Level 100', 7), ('Level 200', 8), ('Level 300', 9), ('Level 400', 10),
+        ]
+        for name, order in default_levels:
+            ClassLevel.objects.get_or_create(name=name, defaults={'order': order, 'is_active': True})
+        self.stdout.write(f'  Class Levels:   {ClassLevel.objects.count()}')
+
         # ── Categories ──
         categories = {}
         cat_data = [
-            ('Mathematics', 'Mathematical concepts and problem solving', 'calculator'),
-            ('Computer Science', 'Programming, algorithms, and CS fundamentals', 'code'),
-            ('English Language', 'Grammar, comprehension, and writing skills', 'book-open'),
-            ('Physics', 'Mechanics, thermodynamics, and modern physics', 'atom'),
+            ('Mathematics', 'Level 100', 'Mathematical concepts and problem solving', 'calculator'),
+            ('Computer Science', 'Level 100', 'Programming, algorithms, and CS fundamentals', 'code'),
+            ('English Language', 'Level 100', 'Grammar, comprehension, and writing skills', 'book-open'),
+            ('Physics', 'Level 100', 'Mechanics, thermodynamics, and modern physics', 'atom'),
         ]
-        for name, desc, icon in cat_data:
-            cat, _ = Category.objects.get_or_create(name=name, defaults={'description': desc, 'icon': icon})
+        for name, level, desc, icon in cat_data:
+            cat, _ = Category.objects.get_or_create(name=name, class_level=level, defaults={'description': desc, 'icon': icon})
             categories[name] = cat
 
         # ── Courses ──
         courses = []
         course_data = [
-            ('Introduction to Calculus', 'Mathematics', 'beginner', instructors[0], 'Learn limits, derivatives, and integrals from scratch.'),
-            ('Data Structures & Algorithms', 'Computer Science', 'intermediate', instructors[1], 'Master arrays, trees, graphs, and sorting algorithms.'),
-            ('Academic Writing', 'English Language', 'beginner', instructors[2], 'Develop your essay writing and critical thinking skills.'),
-            ('Classical Mechanics', 'Physics', 'intermediate', instructors[0], 'Newtonian mechanics, energy, and momentum.'),
-            ('Python Programming', 'Computer Science', 'beginner', instructors[1], 'Learn Python from basics to advanced concepts.'),
-            ('Linear Algebra', 'Mathematics', 'advanced', instructors[0], 'Vectors, matrices, eigenvalues, and linear transformations.'),
+            ('Introduction to Calculus', 'Mathematics', 'beginner', instructors[0], 'Learn limits, derivatives, and integrals from scratch.', 'Level 100'),
+            ('Data Structures & Algorithms', 'Computer Science', 'intermediate', instructors[1], 'Master arrays, trees, graphs, and sorting algorithms.', 'Level 200'),
+            ('Academic Writing', 'English Language', 'beginner', instructors[2], 'Develop your essay writing and critical thinking skills.', 'Level 100'),
+            ('Classical Mechanics', 'Physics', 'intermediate', instructors[0], 'Newtonian mechanics, energy, and momentum.', 'Level 200'),
+            ('Python Programming', 'Computer Science', 'beginner', instructors[1], 'Learn Python from basics to advanced concepts.', 'Level 100'),
+            ('Linear Algebra', 'Mathematics', 'advanced', instructors[0], 'Vectors, matrices, eigenvalues, and linear transformations.', 'Level 300'),
         ]
-        for title, cat_name, diff, instr, desc in course_data:
+        for title, cat_name, diff, instr, desc, level in course_data:
             c, _ = Course.objects.get_or_create(
                 title=title,
                 defaults={
                     'description': desc,
                     'instructor': instr,
                     'category': categories[cat_name],
+                    'class_level': level,
                     'difficulty': diff,
                     'is_published': True,
                     'estimated_duration': timedelta(hours=random.randint(10, 40)),
@@ -120,7 +131,7 @@ class Command(BaseCommand):
         ]
         for content, opts, correct, diff, topic in calc_qs:
             q = Question.objects.create(
-                subject='Mathematics', topic=topic, question_type='mcq', difficulty=diff,
+                subject='Mathematics', topic=topic, class_level='Level 100', question_type='mcq', difficulty=diff,
                 content={'text': content},
                 options=[{'text': o, 'id': i} for i, o in enumerate(opts)],
                 correct_answer=correct, explanation=f'The correct answer is {opts[correct]}.',
@@ -139,7 +150,7 @@ class Command(BaseCommand):
         ]
         for content, opts, correct, diff, topic in cs_qs:
             q = Question.objects.create(
-                subject='Computer Science', topic=topic, question_type='mcq', difficulty=diff,
+                subject='Computer Science', topic=topic, class_level='Level 200', question_type='mcq', difficulty=diff,
                 content={'text': content},
                 options=[{'text': o, 'id': i} for i, o in enumerate(opts)],
                 correct_answer=correct, explanation=f'The correct answer is {opts[correct]}.',
@@ -156,7 +167,7 @@ class Command(BaseCommand):
         ]
         for content, correct, diff, topic in eng_qs:
             q = Question.objects.create(
-                subject='English Language', topic=topic, question_type='true_false', difficulty=diff,
+                subject='English Language', topic=topic, class_level='Level 100', question_type='true_false', difficulty=diff,
                 content={'text': content},
                 options=[{'text': 'True', 'id': 0}, {'text': 'False', 'id': 1}],
                 correct_answer=0 if correct else 1, explanation='See textbook reference.',
@@ -173,7 +184,7 @@ class Command(BaseCommand):
         ]
         for content, opts, correct, diff, topic in phys_qs:
             q = Question.objects.create(
-                subject='Physics', topic=topic, question_type='mcq', difficulty=diff,
+                subject='Physics', topic=topic, class_level='Level 200', question_type='mcq', difficulty=diff,
                 content={'text': content},
                 options=[{'text': o, 'id': i} for i, o in enumerate(opts)],
                 correct_answer=correct, explanation=f'The correct answer is {opts[correct]}.',
@@ -189,7 +200,7 @@ class Command(BaseCommand):
         ]
         for content, opts, correct, diff, topic in math_qs:
             q = Question.objects.create(
-                subject='Mathematics', topic=topic, question_type='mcq', difficulty=diff,
+                subject='Mathematics', topic=topic, class_level='Level 100', question_type='mcq', difficulty=diff,
                 content={'text': content},
                 options=[{'text': o, 'id': i} for i, o in enumerate(opts)],
                 correct_answer=correct, explanation=f'The correct answer is {opts[correct]}.',
@@ -203,31 +214,36 @@ class Command(BaseCommand):
         exams = []
 
         exam_data = [
-            ('Calculus Midterm', 0, 'Mathematics', 60, 15, 50),
-            ('Data Structures Final', 1, 'Computer Science', 90, 20, 50),
-            ('English Essay Quiz', 2, 'English Language', 30, 5, 60),
-            ('Physics Practice Test', 3, 'Physics', 45, 10, 40),
-            ('Python Basics Quiz', 4, 'Computer Science', 30, 10, 50),
-            ('Linear Algebra Final', 5, 'Mathematics', 120, 20, 50),
+            ('Calculus Midterm', 0, 'Mathematics', 60, 15, 50, 'Level 100'),
+            ('Data Structures Final', 1, 'Computer Science', 90, 20, 50, 'Level 200'),
+            ('English Essay Quiz', 2, 'English Language', 30, 5, 60, 'Level 100'),
+            ('Physics Practice Test', 3, 'Physics', 45, 10, 40, 'Level 200'),
+            ('Python Basics Quiz', 4, 'Computer Science', 30, 10, 50, 'Level 100'),
+            ('Linear Algebra Final', 5, 'Mathematics', 120, 20, 50, 'Level 300'),
         ]
-        for title, course_idx, subject, duration_mins, num_qs, pass_score in exam_data:
+        for title, course_idx, subject, duration_mins, num_qs, pass_score, level in exam_data:
             subject_qs = [q for q in all_questions if q.subject == subject]
             selected = random.sample(subject_qs, k=min(num_qs, len(subject_qs)))
 
-            exam, _ = Exam.objects.get_or_create(
+            cat = categories.get(subject)
+            exam, created = Exam.objects.get_or_create(
                 title=title,
                 defaults={
                     'course': courses[course_idx],
+                    'class_level': level,
                     'created_by': instructors[course_idx % len(instructors)],
                     'duration': timedelta(minutes=duration_mins),
                     'total_marks': len(selected),
                     'passing_score': pass_score,
                     'is_published': True,
+                    'is_visible': True,
                     'start_date': timezone.now() - timedelta(days=7),
                     'end_date': timezone.now() + timedelta(days=30),
                     'allowed_attempts': 3,
                 }
             )
+            if created and cat:
+                exam.subjects.add(cat)
             for j, q in enumerate(selected):
                 ExamQuestion.objects.get_or_create(
                     exam=exam, question=q,

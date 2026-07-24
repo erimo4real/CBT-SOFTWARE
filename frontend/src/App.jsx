@@ -64,6 +64,7 @@ const ItemAnalysisPage = lazy(() => import('./pages/instructor/ItemAnalysis'));
 // Admin
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
 const CategoryManager = lazy(() => import('./pages/admin/CategoryManager'));
+const ClassLevelManager = lazy(() => import('./pages/admin/ClassLevelManager'));
 
 // Student portal pages
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
@@ -152,6 +153,7 @@ function App() {
                 {/* Admin */}
                 <Route path="/admin/users" element={<UserManagement />} />
                 <Route path="/admin/categories" element={<CategoryManager />} />
+                <Route path="/admin/class-levels" element={<ClassLevelManager />} />
               </Route>
 
               {/* ── Student Portal ── */}

@@ -1,6 +1,12 @@
 import api from './axios';
 
 export const coursesAPI = {
+  // Class Levels
+  getClassLevels: () => api.get('/courses/class-levels/'),
+  createClassLevel: (data) => api.post('/courses/class-levels/', data),
+  updateClassLevel: (id, data) => api.patch(`/courses/class-levels/${id}/`, data),
+  deleteClassLevel: (id) => api.delete(`/courses/class-levels/${id}/`),
+
   // Categories
   getCategories: () => api.get('/courses/categories/'),
   getCategory: (id) => api.get(`/courses/categories/${id}/`),

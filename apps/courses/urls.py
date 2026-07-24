@@ -4,6 +4,10 @@ from . import views
 app_name = 'courses'
 
 urlpatterns = [
+    # Class Levels
+    path('class-levels/', views.ClassLevelListView.as_view(), name='classlevel-list'),
+    path('class-levels/<uuid:pk>/', views.ClassLevelDetailView.as_view(), name='classlevel-detail'),
+
     # Categories
     path('categories/', views.CategoryListView.as_view(), name='category-list'),
     path('categories/<uuid:pk>/', views.CategoryDetailView.as_view(), name='category-detail'),

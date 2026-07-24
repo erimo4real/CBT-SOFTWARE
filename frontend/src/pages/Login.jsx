@@ -14,6 +14,7 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState({});
   const dispatch = useDispatch();
   const loading = useSelector(selectAuthLoading);
@@ -35,7 +36,7 @@ export default function Login() {
     if (!validate()) return;
     dispatch(clearError());
     try {
-      await dispatch(loginUser({ email, password })).unwrap();
+      await dispatch(loginUser({ email, password, remember })).unwrap();
       toast.success('Welcome back!');
       navigate(from, { replace: true });
     } catch (err) {
@@ -86,15 +87,24 @@ export default function Login() {
               </div>
               {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
             </div>
-            <Button type="submit" className="w-full h-11 font-medium btn-press" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-            <div className="text-right">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                />
+                <span className="text-sm text-muted-foreground">Remember me</span>
+              </label>
               <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
                 Forgot password?
               </Link>
             </div>
+            <Button type="submit" className="w-full h-11 font-medium btn-press" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
           </form>
 
           <div className="mt-6 pt-5 border-t text-center text-sm text-muted-foreground space-y-2">

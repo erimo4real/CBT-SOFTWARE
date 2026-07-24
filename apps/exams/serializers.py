@@ -8,7 +8,7 @@ class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
         fields = [
-            'id', 'subject', 'topic', 'question_type', 'difficulty',
+            'id', 'subject', 'topic', 'class_level', 'question_type', 'difficulty',
             'content', 'options', 'correct_answer', 'explanation',
             'marks', 'created_by', 'created_by_name', 'tags',
             'created_at', 'updated_at',
@@ -23,7 +23,7 @@ class QuestionBankSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
         fields = [
-            'id', 'subject', 'topic', 'question_type', 'difficulty',
+            'id', 'subject', 'topic', 'class_level', 'question_type', 'difficulty',
             'content', 'options', 'marks', 'created_by', 'created_by_name',
             'tags', 'created_at',
         ]
@@ -40,6 +40,7 @@ class ExamQuestionSerializer(serializers.ModelSerializer):
 class ExamListSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
     course_title = serializers.CharField(source='course.title', read_only=True, default=None)
+    subject_names = serializers.SerializerMethodField()
     question_count = serializers.SerializerMethodField()
     attempt_count = serializers.SerializerMethodField()
     duration_display = serializers.SerializerMethodField()
@@ -48,14 +49,19 @@ class ExamListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Exam
         fields = [
-            'id', 'title', 'description', 'course', 'course_title',
+            'id', 'title', 'description', 'class_level', 'course', 'course_title',
+            'subjects', 'subject_names',
             'created_by', 'created_by_name', 'duration', 'total_marks',
             'passing_score', 'start_date', 'end_date', 'allowed_attempts',
-            'is_published', 'question_count', 'attempt_count',
+            'is_published', 'is_visible', 'visible_from', 'visible_until',
+            'question_count', 'attempt_count',
             'duration_display', 'exam_status',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+    def get_subject_names(self, obj):
+        return obj.subject_names
 
     def get_question_count(self, obj):
         return obj.exam_questions.count()
@@ -83,6 +89,7 @@ class ExamListSerializer(serializers.ModelSerializer):
 class ExamDetailSerializer(serializers.ModelSerializer):
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
     course_title = serializers.CharField(source='course.title', read_only=True, default=None)
+    subject_names = serializers.SerializerMethodField()
     questions = ExamQuestionSerializer(source='exam_questions', many=True, read_only=True)
     question_count = serializers.SerializerMethodField()
     duration_display = serializers.SerializerMethodField()
@@ -91,14 +98,19 @@ class ExamDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Exam
         fields = [
-            'id', 'title', 'description', 'course', 'course_title',
+            'id', 'title', 'description', 'class_level', 'course', 'course_title',
+            'subjects', 'subject_names',
             'created_by', 'created_by_name', 'duration', 'total_marks',
             'passing_score', 'start_date', 'end_date', 'allowed_attempts',
-            'config', 'anti_cheating', 'is_published', 'questions',
-            'question_count', 'duration_display', 'exam_status',
+            'config', 'anti_cheating', 'is_published',
+            'is_visible', 'visible_from', 'visible_until',
+            'questions', 'question_count', 'duration_display', 'exam_status',
             'created_at', 'updated_at',
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
+
+    def get_subject_names(self, obj):
+        return obj.subject_names
 
     def get_question_count(self, obj):
         return obj.exam_questions.count()

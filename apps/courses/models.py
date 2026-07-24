@@ -3,9 +3,24 @@ from django.conf import settings
 import uuid
 
 
+class ClassLevel(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, unique=True)
+    order = models.PositiveIntegerField(default=0, help_text='Sort order (lower = first)')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return self.name
+
+
 class Category(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=200, unique=True)
+    name = models.CharField(max_length=200)
+    class_level = models.CharField(max_length=50, blank=True)
     description = models.TextField(blank=True)
     icon = models.CharField(max_length=50, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -13,6 +28,7 @@ class Category(models.Model):
     class Meta:
         verbose_name_plural = 'Categories'
         ordering = ['name']
+        unique_together = ['name', 'class_level']
 
     def __str__(self):
         return self.name
@@ -30,6 +46,7 @@ class Course(models.Model):
     thumbnail = models.ImageField(upload_to='courses/thumbnails/', blank=True, null=True)
     instructor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='courses')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='courses')
+    class_level = models.CharField(max_length=50, blank=True)
     difficulty = models.CharField(max_length=20, choices=Difficulty.choices, default=Difficulty.BEGINNER)
     estimated_duration = models.DurationField(blank=True, null=True)
     prerequisites = models.ManyToManyField('self', blank=True, symmetrical=False, related_name='required_for')

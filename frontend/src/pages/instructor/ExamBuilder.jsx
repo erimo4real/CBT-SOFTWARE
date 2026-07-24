@@ -18,7 +18,7 @@ import PageTransition from '../../components/PageTransition';
 import { CourseCardSkeleton } from '../../components/Skeletons';
 import { toast } from 'sonner';
 import {
-  Plus, Pencil, Trash2, Settings, Eye, EyeOff, Search,
+  Plus, Pencil, Trash2, Settings, Eye, EyeOff, Search, GripVertical,
 } from 'lucide-react';
 import usePagination from '@/hooks/usePagination';
 import Pagination from '@/components/Pagination';
@@ -27,6 +27,8 @@ import TableFilters from '@/components/TableFilters';
 export default function ExamBuilder() {
   const [exams, setExams] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [classLevels, setClassLevels] = useState([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -42,9 +44,10 @@ export default function ExamBuilder() {
   const { page, search, filters, params, setPage, setSearch, setFilter, clearFilters, totalPages } = usePagination();
 
   const [form, setForm] = useState({
-    title: '', description: '', course: '', duration: 60,
+    title: '', description: '', course: '', class_level: '', subjects: [], duration: 60,
     passing_score: 50, allowed_attempts: 1, start_date: '', end_date: '',
-    is_published: false, shuffle_questions: false, shuffle_options: false,
+    is_published: false, is_visible: false, visible_from: '', visible_until: '',
+    shuffle_questions: false, shuffle_options: false,
   });
 
   useEffect(() => {
@@ -53,6 +56,8 @@ export default function ExamBuilder() {
 
   useEffect(() => {
     coursesAPI.getCourses().then(res => setCourses(res.data.results || res.data)).catch(() => {});
+    coursesAPI.getClassLevels().then(res => setClassLevels(res.data.results || res.data || [])).catch(() => {});
+    coursesAPI.getCategories().then(res => setCategories(res.data.results || res.data || [])).catch(() => {});
   }, []);
 
   async function loadData() {
@@ -73,9 +78,10 @@ export default function ExamBuilder() {
   function openCreate() {
     setEditing(null);
     setForm({
-      title: '', description: '', course: '', duration: 60,
+      title: '', description: '', course: '', class_level: '', subjects: [], duration: 60,
       passing_score: 50, allowed_attempts: 1, start_date: '', end_date: '',
-      is_published: false, shuffle_questions: false, shuffle_options: false,
+      is_published: false, is_visible: false, visible_from: '', visible_until: '',
+      shuffle_questions: false, shuffle_options: false,
     });
     setDialogOpen(true);
   }
@@ -87,12 +93,17 @@ export default function ExamBuilder() {
       title: exam.title,
       description: exam.description || '',
       course: exam.course || '',
+      class_level: exam.class_level || '',
+      subjects: exam.subjects || [],
       duration: Math.round((exam.duration || 0) / 60),
       passing_score: exam.passing_score || 50,
       allowed_attempts: exam.allowed_attempts || 1,
       start_date: exam.start_date ? exam.start_date.slice(0, 16) : '',
       end_date: exam.end_date ? exam.end_date.slice(0, 16) : '',
       is_published: exam.is_published,
+      is_visible: exam.is_visible || false,
+      visible_from: exam.visible_from ? exam.visible_from.slice(0, 16) : '',
+      visible_until: exam.visible_until ? exam.visible_until.slice(0, 16) : '',
       shuffle_questions: !!cfg.shuffle_questions,
       shuffle_options: !!cfg.shuffle_options,
     });
@@ -111,12 +122,17 @@ export default function ExamBuilder() {
         title: form.title,
         description: form.description,
         course: form.course || null,
+        class_level: form.class_level,
+        subjects: form.subjects,
         duration: Number(form.duration) * 60,
         passing_score: Number(form.passing_score),
         allowed_attempts: Number(form.allowed_attempts),
         start_date: form.start_date || null,
         end_date: form.end_date || null,
         is_published: form.is_published,
+        is_visible: form.is_visible,
+        visible_from: form.visible_from || null,
+        visible_until: form.visible_until || null,
         config: {
           shuffle_questions: form.shuffle_questions,
           shuffle_options: form.shuffle_options,
@@ -241,9 +257,16 @@ export default function ExamBuilder() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg">{exam.title}</CardTitle>
-                  <Badge variant={exam.is_published ? 'default' : 'secondary'}>
-                    {exam.is_published ? <><Eye className="h-3 w-3 mr-1" />Published</> : <><EyeOff className="h-3 w-3 mr-1" />Draft</>}
-                  </Badge>
+                  <div className="flex gap-1 shrink-0 flex-wrap justify-end">
+                    {exam.class_level && <Badge variant="outline" className="text-xs bg-slate-100 text-slate-700">{exam.class_level}</Badge>}
+                    {exam.subject_names?.map(s => <Badge key={s} variant="outline" className="text-xs">{s}</Badge>)}
+                    <Badge variant={exam.is_visible ? 'default' : 'secondary'}>
+                      {exam.is_visible ? 'Visible' : 'Hidden'}
+                    </Badge>
+                    <Badge variant={exam.is_published ? 'default' : 'secondary'}>
+                      {exam.is_published ? <><Eye className="h-3 w-3 mr-1" />Published</> : <><EyeOff className="h-3 w-3 mr-1" />Draft</>}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -290,6 +313,38 @@ export default function ExamBuilder() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Class Level</Label>
+              <Select value={form.class_level} onValueChange={v => setForm({ ...form, class_level: v })}>
+                <SelectTrigger><SelectValue placeholder="Select target level" /></SelectTrigger>
+                <SelectContent>
+                  {classLevels.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Subjects</Label>
+              <div className="flex flex-wrap gap-2 p-2 border rounded-md min-h-[40px]">
+                {categories.length === 0 && <span className="text-sm text-muted-foreground">No subjects available</span>}
+                {categories.map(cat => {
+                  const selected = form.subjects.includes(cat.id);
+                  return (
+                    <button key={cat.id} type="button"
+                      onClick={() => {
+                        const next = selected
+                          ? form.subjects.filter(id => id !== cat.id)
+                          : [...form.subjects, cat.id];
+                        setForm({ ...form, subjects: next });
+                      }}
+                      className={`px-2.5 py-1 text-xs rounded-full border transition-colors ${selected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+                    >
+                      {cat.name}{cat.class_level ? ` (${cat.class_level})` : ''}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">Click to toggle subjects for this exam</p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Duration (min)</Label>
@@ -317,6 +372,27 @@ export default function ExamBuilder() {
             <div className="flex items-center gap-3">
               <Switch checked={form.is_published} onCheckedChange={v => setForm({ ...form, is_published: v })} />
               <Label>Published</Label>
+            </div>
+            <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Switch checked={form.is_visible} onCheckedChange={v => setForm({ ...form, is_visible: v })} />
+                  <div>
+                    <Label>Visible to Students</Label>
+                    <p className="text-xs text-muted-foreground">Students can see this exam</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Auto-reveal from</Label>
+                  <Input type="datetime-local" value={form.visible_from} onChange={e => setForm({ ...form, visible_from: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Auto-hide at</Label>
+                  <Input type="datetime-local" value={form.visible_until} onChange={e => setForm({ ...form, visible_until: e.target.value })} />
+                </div>
+              </div>
             </div>
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2">

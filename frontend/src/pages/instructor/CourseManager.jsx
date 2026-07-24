@@ -23,6 +23,7 @@ import {
 export default function CourseManager() {
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [classLevels, setClassLevels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [lessonDialogOpen, setLessonDialogOpen] = useState(false);
@@ -34,7 +35,7 @@ export default function CourseManager() {
   const [saving, setSaving] = useState(false);
 
   const [courseForm, setCourseForm] = useState({
-    title: '', description: '', category: '', difficulty: 'beginner',
+    title: '', description: '', category: '', class_level: '', difficulty: 'beginner',
     thumbnail_url: '', is_published: false,
   });
   const [lessonForm, setLessonForm] = useState({
@@ -48,12 +49,14 @@ export default function CourseManager() {
 
   async function loadData() {
     try {
-      const [coursesRes, catsRes] = await Promise.all([
+      const [coursesRes, catsRes, levelsRes] = await Promise.all([
         coursesAPI.getMyCourses(),
         coursesAPI.getCategories(),
+        coursesAPI.getClassLevels(),
       ]);
       setCourses(coursesRes.data.results || coursesRes.data);
       setCategories(catsRes.data.results || catsRes.data);
+      setClassLevels(levelsRes.data.results || levelsRes.data || []);
     } catch {
       toast.error('Failed to load courses');
     } finally {
@@ -64,7 +67,7 @@ export default function CourseManager() {
   function openCreate() {
     setEditingCourse(null);
     setCourseForm({
-      title: '', description: '', category: '', difficulty: 'beginner',
+      title: '', description: '', category: '', class_level: '', difficulty: 'beginner',
       thumbnail_url: '', is_published: false,
     });
     setDialogOpen(true);
@@ -76,6 +79,7 @@ export default function CourseManager() {
       title: course.title,
       description: course.description || '',
       category: course.category || '',
+      class_level: course.class_level || '',
       difficulty: course.difficulty || 'beginner',
       thumbnail_url: course.thumbnail_url || '',
       is_published: course.is_published,
@@ -218,9 +222,12 @@ export default function CourseManager() {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg line-clamp-2">{course.title}</CardTitle>
-                  <Badge variant="outline" className={diffColors[course.difficulty] || ''}>
-                    {course.difficulty}
-                  </Badge>
+                  <div className="flex gap-1 shrink-0">
+                    {course.class_level && <Badge variant="outline" className="text-xs bg-slate-100 text-slate-700">{course.class_level}</Badge>}
+                    <Badge variant="outline" className={diffColors[course.difficulty] || ''}>
+                      {course.difficulty}
+                    </Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -282,6 +289,15 @@ export default function CourseManager() {
                     <SelectItem value="beginner">Beginner</SelectItem>
                     <SelectItem value="intermediate">Intermediate</SelectItem>
                     <SelectItem value="advanced">Advanced</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Class Level</Label>
+                <Select value={courseForm.class_level} onValueChange={v => setCourseForm({ ...courseForm, class_level: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+                  <SelectContent>
+                    {classLevels.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

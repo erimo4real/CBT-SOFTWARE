@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { examsAPI } from '../../api/exams';
+import { coursesAPI } from '../../api/courses';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -42,17 +43,26 @@ export default function QuestionBank() {
   const [saving, setSaving] = useState(false);
   const [importing, setImporting] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [classLevels, setClassLevels] = useState([]);
   const fileRef = useRef(null);
 
   const { page, search, filters, params, setPage, setSearch, setFilter, clearFilters, totalPages } = usePagination();
 
   const [form, setForm] = useState({
-    subject: '', topic: '', question_type: 'mcq', difficulty: 'medium',
+    subject: '', topic: '', class_level: '', question_type: 'mcq', difficulty: 'medium',
     content: '', options: ['', '', '', ''], correct_answer: 0,
     explanation: '', marks: 1, tags: '',
   });
 
   useEffect(() => { loadQuestions(); }, [page, search, filters]);
+
+  useEffect(() => {
+    coursesAPI.getCategories().then(res => setCategories(res.data.results || res.data || [])).catch(() => {});
+    coursesAPI.getCourses().then(res => setCourses(res.data.results || res.data || [])).catch(() => {});
+    coursesAPI.getClassLevels().then(res => setClassLevels(res.data.results || res.data || [])).catch(() => {});
+  }, []);
 
   async function loadQuestions() {
     setLoading(true);
@@ -70,7 +80,7 @@ export default function QuestionBank() {
   function openCreate() {
     setEditing(null);
     setForm({
-      subject: '', topic: '', question_type: 'mcq', difficulty: 'medium',
+      subject: '', topic: '', class_level: '', question_type: 'mcq', difficulty: 'medium',
       content: '', options: ['', '', '', ''], correct_answer: 0,
       explanation: '', marks: 1, tags: '',
     });
@@ -83,6 +93,7 @@ export default function QuestionBank() {
     setForm({
       subject: q.subject || '',
       topic: q.topic || '',
+      class_level: q.class_level || '',
       question_type: q.question_type,
       difficulty: q.difficulty,
       content: contentText,
@@ -102,6 +113,7 @@ export default function QuestionBank() {
       const payload = {
         subject: form.subject,
         topic: form.topic,
+        class_level: form.class_level,
         question_type: form.question_type,
         difficulty: form.difficulty,
         content: { text: form.content },
@@ -190,8 +202,9 @@ export default function QuestionBank() {
         onSearch={setSearch}
         searchPlaceholder="Search questions..."
         filters={[
-          { key: 'subject', label: 'All subjects', options: [{ value: 'mathematics', label: 'Mathematics' }, { value: 'science', label: 'Science' }, { value: 'english', label: 'English' }] },
-          { key: 'topic', label: 'All topics', options: [] },
+          { key: 'subject', label: 'All subjects', options: categories.map(c => ({ value: c.name, label: c.name })) },
+          { key: 'topic', label: 'All topics', options: courses.map(c => ({ value: c.title, label: c.title })) },
+          { key: 'class_level', label: 'All levels', options: classLevels.map(l => ({ value: l.name, label: l.name })) },
           { key: 'type', label: 'All types', options: Q_TYPES.map(t => ({ value: t.value, label: t.label })) },
           { key: 'difficulty', label: 'All levels', options: DIFFICULTIES.map(d => ({ value: d, label: d.charAt(0).toUpperCase() + d.slice(1) })) },
         ]}
@@ -221,6 +234,7 @@ export default function QuestionBank() {
                   <div className="flex items-center gap-2 mt-1.5">
                     <Badge variant="outline" className={`text-xs ${qtypeColors[q.question_type] || ''}`}>{q.question_type.replace('_', ' ')}</Badge>
                     <Badge variant="outline" className={`text-xs ${diffColors[q.difficulty] || ''}`}>{q.difficulty}</Badge>
+                    {q.class_level && <Badge variant="outline" className="text-xs bg-slate-100 text-slate-700">{q.class_level}</Badge>}
                     <span className="text-xs text-muted-foreground">{q.subject} · {q.topic}</span>
                     <span className="text-xs text-muted-foreground">· {q.marks} mark{q.marks !== 1 ? 's' : ''}</span>
                   </div>
@@ -245,14 +259,35 @@ export default function QuestionBank() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Subject *</Label>
-                <Input value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} required />
+                <Select value={form.subject} onValueChange={v => setForm({ ...form, subject: v, topic: '' })}>
+                  <SelectTrigger><SelectValue placeholder="Select subject" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Topic *</Label>
-                <Input value={form.topic} onChange={e => setForm({ ...form, topic: e.target.value })} required />
+                <Select value={form.topic} onValueChange={v => setForm({ ...form, topic: v })} disabled={!form.subject}>
+                  <SelectTrigger><SelectValue placeholder={form.subject ? 'Select topic' : 'Select subject first'} /></SelectTrigger>
+                  <SelectContent>
+                    {courses
+                      .filter(c => !form.subject || c.category_name === form.subject)
+                      .map(c => <SelectItem key={c.id} value={c.title}>{c.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label>Class Level</Label>
+                <Select value={form.class_level} onValueChange={v => setForm({ ...form, class_level: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+                  <SelectContent>
+                    {classLevels.map(l => <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Type *</Label>
                 <Select value={form.question_type} onValueChange={v => setForm({ ...form, question_type: v })}>

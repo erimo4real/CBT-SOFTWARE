@@ -1,5 +1,12 @@
 from rest_framework import serializers
-from .models import Category, Course, Enrollment, Lesson, LessonProgress
+from .models import ClassLevel, Category, Course, Enrollment, Lesson, LessonProgress
+
+
+class ClassLevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClassLevel
+        fields = ['id', 'name', 'order', 'is_active', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -7,7 +14,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description', 'icon', 'course_count', 'created_at']
+        fields = ['id', 'name', 'class_level', 'description', 'icon', 'course_count', 'created_at']
 
     def get_course_count(self, obj):
         return obj.courses.filter(is_published=True).count()
@@ -44,7 +51,7 @@ class CourseListSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'description', 'thumbnail_url', 'instructor',
-            'instructor_name', 'category', 'category_name', 'difficulty',
+            'instructor_name', 'category', 'category_name', 'class_level', 'difficulty',
             'estimated_duration', 'is_published', 'lessons_count',
             'students_count', 'created_at', 'updated_at',
         ]
@@ -72,7 +79,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
         model = Course
         fields = [
             'id', 'title', 'description', 'thumbnail_url', 'instructor',
-            'instructor_name', 'category', 'category_name', 'difficulty',
+            'instructor_name', 'category', 'category_name', 'class_level', 'difficulty',
             'estimated_duration', 'is_published', 'lessons', 'lessons_count',
             'students_count', 'is_enrolled', 'created_at', 'updated_at',
         ]

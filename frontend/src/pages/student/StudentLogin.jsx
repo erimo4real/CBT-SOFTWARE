@@ -25,6 +25,7 @@ export default function StudentLogin() {
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState(null);
   const [otpInfo, setOtpInfo] = useState(null);
+  const [remember, setRemember] = useState(true);
 
   const [credentials, setCredentials] = useState({ login: '', password: '' });
   const [otpDelivery, setOtpDelivery] = useState('');
@@ -74,8 +75,8 @@ export default function StudentLogin() {
     setLoading(true);
     try {
       const res = await studentAuthAPI.verifyOTP({ user_id: userId, code: otpCode });
-      dispatch(setTokens(res.data.tokens));
-      dispatch(setUser(res.data.user));
+      dispatch(setTokens({ tokens: res.data.tokens, remember }));
+      dispatch(setUser({ user: res.data.user, remember }));
       toast.success('Login successful!');
       navigate(from, { replace: true });
     } catch (err) {
@@ -130,6 +131,20 @@ export default function StudentLogin() {
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <KeyRound className="h-4 w-4 mr-2" />}
                   Verify Credentials
                 </Button>
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary/20"
+                    />
+                    <span className="text-sm text-muted-foreground">Remember me</span>
+                  </label>
+                  <a href="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                    Forgot password?
+                  </a>
+                </div>
                 <p className="text-center text-sm text-muted-foreground">
                   Don't have an account? Contact your administrator.
                 </p>

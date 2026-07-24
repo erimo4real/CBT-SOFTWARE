@@ -17,6 +17,7 @@ import {
   Sparkles,
   Trophy,
   User,
+  Layers,
 } from 'lucide-react';
 
 const studentNav = [
@@ -58,6 +59,7 @@ const adminNav = [
   { to: '/staff/students', label: 'Students', icon: Users },
   { to: '/staff/exam-pins', label: 'Exam PINs', icon: Key },
   { to: '/admin/users', label: 'Users', icon: Users },
+  { to: '/admin/class-levels', label: 'Class Levels', icon: Layers },
   { to: '/admin/categories', label: 'Subjects', icon: FolderOpen },
   { to: '/instructor/courses', label: 'Topics', icon: FileText },
   { to: '/instructor/questions', label: 'Question Bank', icon: HelpCircle },

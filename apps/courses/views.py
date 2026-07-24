@@ -3,20 +3,47 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Count, Q
-from .models import Category, Course, Enrollment, Lesson, LessonProgress
+from .models import ClassLevel, Category, Course, Enrollment, Lesson, LessonProgress
 from .serializers import (
-    CategorySerializer, CourseListSerializer, CourseDetailSerializer,
+    ClassLevelSerializer, CategorySerializer, CourseListSerializer, CourseDetailSerializer,
     LessonSerializer, EnrollmentSerializer, LessonProgressSerializer,
 )
 from apps.accounts.permissions import IsInstructor, IsAdmin, IsInstructorOrAdmin
 
 
+# ── Class Levels ──
+
+class ClassLevelListView(generics.ListCreateAPIView):
+    queryset = ClassLevel.objects.all()
+    serializer_class = ClassLevelSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAdmin()]
+        return [AllowAny()]
+
+
+class ClassLevelDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ClassLevel.objects.all()
+    serializer_class = ClassLevelSerializer
+
+    def get_permissions(self):
+        if self.request.method in ('PUT', 'PATCH', 'DELETE'):
+            return [IsAdmin()]
+        return [AllowAny()]
+
+
 # ── Categories ──
 
 class CategoryListView(generics.ListCreateAPIView):
-    queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = Category.objects.all()
+        class_level = self.request.query_params.get('class_level')
+        if class_level:
+            queryset = queryset.filter(class_level=class_level)
+        return queryset
 
     def get_permissions(self):
         if self.request.method == 'POST':

@@ -18,12 +18,12 @@ export const fetchProfile = createAsyncThunk(
 
 export const loginUser = createAsyncThunk(
   'auth/login',
-  async ({ email, password }, { rejectWithValue }) => {
+  async ({ email, password, remember = true }, { rejectWithValue }) => {
     try {
       const response = await authAPI.login({ email, password });
       const { user: userData, tokens } = response.data;
-      authStorage.setTokens(tokens);
-      authStorage.setUser(userData);
+      authStorage.setTokens(tokens, remember);
+      authStorage.setUser(userData, remember);
       return userData;
     } catch (err) {
       return rejectWithValue(err.response?.data?.detail || 'Invalid credentials');
@@ -37,8 +37,8 @@ export const registerUser = createAsyncThunk(
     try {
       const response = await authAPI.register(data);
       const { user: userData, tokens } = response.data;
-      authStorage.setTokens(tokens);
-      authStorage.setUser(userData);
+      authStorage.setTokens(tokens, true);
+      authStorage.setUser(userData, true);
       return userData;
     } catch (err) {
       const msg = err.response?.data;
@@ -54,8 +54,8 @@ export const googleLogin = createAsyncThunk(
     try {
       const response = await authAPI.googleLogin(token);
       const { user: userData, tokens } = response.data;
-      authStorage.setTokens(tokens);
-      authStorage.setUser(userData);
+      authStorage.setTokens(tokens, true);
+      authStorage.setUser(userData, true);
       return userData;
     } catch (err) {
       return rejectWithValue(err.response?.data?.detail || 'Google login failed');
@@ -80,12 +80,14 @@ const authSlice = createSlice({
       authStorage.clear();
     },
     setTokens(state, action) {
-      authStorage.setTokens(action.payload);
+      const { tokens, remember } = action.payload;
+      authStorage.setTokens(tokens, remember);
     },
     setUser(state, action) {
-      state.user = action.payload;
+      const { user, remember } = action.payload;
+      state.user = user;
       state.loading = false;
-      authStorage.setUser(action.payload);
+      authStorage.setUser(user, remember);
     },
     updateUser(state, action) {
       state.user = action.payload;

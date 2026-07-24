@@ -33,6 +33,7 @@ class QuestionListView(generics.ListCreateAPIView):
 
         subject = self.request.query_params.get('subject')
         topic = self.request.query_params.get('topic')
+        class_level = self.request.query_params.get('class_level')
         qtype = self.request.query_params.get('type')
         difficulty = self.request.query_params.get('difficulty')
         search = self.request.query_params.get('search')
@@ -41,6 +42,8 @@ class QuestionListView(generics.ListCreateAPIView):
             queryset = queryset.filter(subject__icontains=subject)
         if topic:
             queryset = queryset.filter(topic__icontains=topic)
+        if class_level:
+            queryset = queryset.filter(class_level=class_level)
         if qtype:
             queryset = queryset.filter(question_type=qtype)
         if difficulty:
@@ -129,6 +132,7 @@ def bulk_import_questions(request):
                 Question.objects.create(
                     subject=row.get('subject', 'General'),
                     topic=row.get('topic', ''),
+                    class_level=row.get('class_level', ''),
                     question_type=qtype,
                     difficulty=row.get('difficulty', 'medium'),
                     content=content,
@@ -157,14 +161,21 @@ class ExamListView(generics.ListCreateAPIView):
     serializer_class = ExamListSerializer
 
     def get_queryset(self):
-        queryset = Exam.objects.select_related('created_by', 'course')
+        queryset = Exam.objects.select_related('created_by', 'course').prefetch_related('subjects')
 
         course = self.request.query_params.get('course')
+        class_level = self.request.query_params.get('class_level')
+        subject = self.request.query_params.get('subject')
         search = self.request.query_params.get('search')
         published = self.request.query_params.get('published')
+        visible = self.request.query_params.get('visible')
 
         if course:
             queryset = queryset.filter(course_id=course)
+        if class_level:
+            queryset = queryset.filter(class_level=class_level)
+        if subject:
+            queryset = queryset.filter(subjects__name=subject).distinct()
         if search:
             queryset = queryset.filter(
                 Q(title__icontains=search) | Q(description__icontains=search)
@@ -172,12 +183,34 @@ class ExamListView(generics.ListCreateAPIView):
         if published is not None:
             queryset = queryset.filter(is_published=published.lower() == 'true')
         else:
-            if not self.request.user.is_authenticated or not (
+            if self.request.user.is_authenticated and self.request.user.is_student:
+                queryset = queryset.filter(is_published=True)
+                if self.request.user.class_level:
+                    queryset = queryset.filter(class_level=self.request.user.class_level)
+                queryset = self._filter_visible(queryset)
+            elif not self.request.user.is_authenticated or not (
                 self.request.user.is_instructor or self.request.user.is_admin_role
             ):
                 queryset = queryset.filter(is_published=True)
+                queryset = self._filter_visible(queryset)
+
+        if visible is not None:
+            if visible.lower() == 'true':
+                queryset = self._filter_visible(queryset)
+            elif visible.lower() == 'false':
+                visible_ids = self._filter_visible(queryset).values_list('id', flat=True)
+                queryset = queryset.exclude(id__in=visible_ids)
 
         return queryset
+
+    def _filter_visible(self, queryset):
+        from django.utils import timezone
+        now = timezone.now()
+        return queryset.filter(
+            Q(is_visible=True) &
+            (Q(visible_from__isnull=True) | Q(visible_from__lte=now)) &
+            (Q(visible_until__isnull=True) | Q(visible_until__gte=now))
+        )
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -193,7 +226,7 @@ class ExamDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Exam.objects.select_related('created_by', 'course').prefetch_related(
-            'exam_questions__question'
+            'exam_questions__question', 'subjects'
         )
 
     def get_permissions(self):
